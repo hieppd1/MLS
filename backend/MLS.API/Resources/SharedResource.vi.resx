@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" />
+              <xsd:attribute name="xml:space" default="preserve" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+
+  <!-- Auth -->
+  <data name="Unauthorized"><value>Bạn chưa đăng nhập.</value></data>
+  <data name="Forbidden"><value>Bạn không có quyền thực hiện hành động này.</value></data>
+  <data name="WrongCredentials"><value>Email hoặc mật khẩu không đúng.</value></data>
+  <data name="EmailAlreadyExists"><value>Email này đã được đăng ký.</value></data>
+  <data name="InvalidToken"><value>Token không hợp lệ hoặc đã hết hạn.</value></data>
+
+  <!-- Generic -->
+  <data name="NotFound"><value>Không tìm thấy tài nguyên yêu cầu.</value></data>
+  <data name="ServerError"><value>Đã xảy ra lỗi. Vui lòng thử lại.</value></data>
+  <data name="ValidationFailed"><value>Dữ liệu không hợp lệ.</value></data>
+  <data name="FileEmpty"><value>Tệp không được để trống.</value></data>
+
+  <!-- Orders / Cart -->
+  <data name="CartEmpty"><value>Giỏ hàng trống.</value></data>
+  <data name="OrderNotFound"><value>Không tìm thấy đơn hàng.</value></data>
+  <data name="OrderAlreadyPaid"><value>Đơn hàng đã được thanh toán.</value></data>
+  <data name="PaymentConfirmed"><value>Thanh toán đã được xác nhận.</value></data>
+  <data name="PaymentCannotConfirm"><value>Đơn hàng không tồn tại hoặc không thể xác nhận thanh toán.</value></data>
+
+  <!-- Courses -->
+  <data name="CourseNotFound"><value>Không tìm thấy khoá học.</value></data>
+  <data name="AlreadyEnrolled"><value>Bạn đã đăng ký khoá học này rồi.</value></data>
+  <data name="NotEnrolled"><value>Bạn chưa đăng ký khoá học này.</value></data>
+
+  <!-- Books -->
+  <data name="BookNotFound"><value>Không tìm thấy sách.</value></data>
+  <data name="BookAlreadyOwned"><value>Bạn đã sở hữu cuốn sách này.</value></data>
+
+  <!-- Users -->
+  <data name="UserNotFound"><value>Không tìm thấy người dùng.</value></data>
+  <data name="InvalidLocale"><value>Ngôn ngữ không được hỗ trợ.</value></data>
+  <data name="LocaleUpdated"><value>Ngôn ngữ đã được cập nhật.</value></data>
+
+  <!-- Quiz / Placement -->
+  <data name="QuizNotFound"><value>Không tìm thấy bài kiểm tra.</value></data>
+  <data name="AttemptNotFound"><value>Không tìm thấy lần làm bài.</value></data>
+  <data name="PlacementAlreadyDone"><value>Bạn đã hoàn thành bài kiểm tra xếp lớp.</value></data>
+
+  <!-- File upload -->
+  <data name="NoFileUploaded"><value>Chưa có tệp nào được tải lên.</value></data>
+  <data name="FileTypeNotSupported"><value>Định dạng tệp không được hỗ trợ.</value></data>
+  <data name="FileSizeExceeded"><value>Kích thước tệp không được vượt quá 50MB.</value></data>
+  <data name="ImageOnlyAllowed"><value>Chỉ cho phép ảnh JPEG, PNG, WebP hoặc GIF.</value></data>
+  <data name="FileSizeExceeded5MB"><value>Kích thước tệp không được vượt quá 5MB.</value></data>
+  <data name="AudioFileEmpty"><value>Tệp âm thanh đang trống.</value></data>
+  <data name="AudioFormatUnsupported"><value>Định dạng âm thanh không được hỗ trợ. Vui lòng dùng WebM, MP3, WAV, OGG hoặc M4A.</value></data>
+
+  <!-- Writing / Speaking submissions -->
+  <data name="EssayTextRequired"><value>Vui lòng nhập nội dung bài viết.</value></data>
+  <data name="WordCountPositive"><value>Số từ phải lớn hơn 0.</value></data>
+  <data name="GradingInProgress"><value>Đang chấm bài...</value></data>
+  <data name="TokenRequired"><value>Cần cung cấp token thiết bị.</value></data>
+
+  <!-- Quiz / Attempt -->
+  <data name="QuizPublished"><value>Bài kiểm tra đã được xuất bản.</value></data>
+  <data name="QuizArchived"><value>Bài kiểm tra đã được lưu trữ.</value></data>
+  <data name="PlacementQuizNotFound"><value>Chưa có bài kiểm tra xếp lớp nào được xuất bản.</value></data>
+  <data name="AttemptNotFoundOrNotInProgress"><value>Không tìm thấy lần làm bài hoặc bài đã kết thúc.</value></data>
+  <data name="AttemptAbandoned"><value>Đã huỷ lần làm bài này.</value></data>
+  <data name="AssetNotFoundOrNotQuiz"><value>Không tìm thấy tài nguyên hoặc không phải là khối Quiz.</value></data>
+  <data name="EnrolledSuccess"><value>Đăng ký khoá học thành công.</value></data>
+</root>

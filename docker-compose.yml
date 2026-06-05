@@ -1,0 +1,83 @@
+# MLS Local Development Stack
+# PostgreSQL is NOT here — using native Windows install (postgresql-x64-18 service)
+# Run: docker compose up -d
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: mls_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: mls_rabbitmq
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI → http://localhost:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: mls
+      RABBITMQ_DEFAULT_PASS: mls_dev_password
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  moodle:
+    # Bitnami moved from Docker Hub → AWS ECR Public in 2024
+    image: public.ecr.aws/bitnami/moodle:latest
+    container_name: mls_moodle
+    ports:
+      - "8080:8080"    # Moodle web UI → http://localhost:8080
+      - "8443:8443"    # Moodle HTTPS
+    environment:
+      MOODLE_DATABASE_TYPE: pgsql
+      MOODLE_DATABASE_HOST: host.docker.internal  # Points to local Windows PostgreSQL
+      MOODLE_DATABASE_PORT_NUMBER: 5432
+      MOODLE_DATABASE_USER: postgres
+      MOODLE_DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      MOODLE_DATABASE_NAME: moodle
+      MOODLE_USERNAME: admin
+      MOODLE_PASSWORD: ${MOODLE_ADMIN_PASSWORD}
+      MOODLE_EMAIL: admin@mls.local
+      MOODLE_SITE_NAME: "Vietnamese Language Learning"
+      MOODLE_SKIP_BOOTSTRAP: "no"
+      # Enable REST web services for API integration
+      MOODLE_PLUGINS_LIST: ""
+      # Performance
+      PHP_MEMORY_LIMIT: 512M
+      PHP_MAX_EXECUTION_TIME: 300
+    volumes:
+      - moodle_data:/bitnami/moodle
+      - moodle_moodledata:/bitnami/moodledata
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      # First startup takes 2–5 minutes while Moodle installs, so start_period is long
+      test: ["CMD", "curl", "-f", "-s", "http://localhost:8080/login/index.php"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  redis_data:
+  rabbitmq_data:
+  moodle_data:
+  moodle_moodledata:

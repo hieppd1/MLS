@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/MLS.Tests/MLS.Tests.csproj" />
+  </Folder>
+  <Project Path="MLS.API/MLS.API.csproj" />
+  <Project Path="MLS.Application/MLS.Application.csproj" />
+  <Project Path="MLS.Domain/MLS.Domain.csproj" />
+  <Project Path="MLS.Infrastructure/MLS.Infrastructure.csproj" />
+</Solution>

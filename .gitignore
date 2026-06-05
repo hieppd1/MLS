@@ -1,0 +1,51 @@
+## ── Backend (.NET) ───────────────────────────────────────
+backend/**/bin/
+backend/**/obj/
+
+## ── Frontend (Next.js) ───────────────────────────────────
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+frontend/.env*.local
+
+## ── Media files (local storage) ─────────────────────────
+media/
+D:\MLSMedia\
+
+## ── Secrets — never commit these ────────────────────────
+.env
+.env.local
+.env.production
+appsettings.*.local.json
+**/secrets.json
+deploy/.env.*
+deploy/*.secret
+
+## ── Logs ─────────────────────────────────────────────────
+logs/
+*.log
+
+## ── OS ───────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+## ── IDE ──────────────────────────────────────────────────
+.vs/
+*.suo
+*.user
+.idea/
+*.swp
+
+## ── Node modules (root + all subfolders) ─────────────────
+node_modules/
+**/node_modules/
+
+## ── Design folder ────────────────────────────────────────
+"Thiết kế giao diện website (2)/"
+Thiết kế giao diện website (2)/
+
+## ── Mobile ───────────────────────────────────────────────
+mobile/
+
+## ── Publish output ───────────────────────────────────────
+backend/publish/

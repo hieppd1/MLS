@@ -1,0 +1,84 @@
+.video-vod-container {
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.video-livestream-container {
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.video-vod {
+    -webkit-clip-path: none !important;
+    clip-path: none !important;
+    position: absolute !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
+}
+
+video[poster] {
+    height: 100%;
+    object-fit: contain !important;
+    background-color: transparent !important;
+}
+
+.plyr {
+    -webkit-clip-path: none !important;
+    clip-path: none !important;
+    height: 100%;
+    width: 100%;
+}
+
+.plyr__video-wrapper {
+    -webkit-clip-path: none !important;
+    clip-path: none !important;
+    height: 100%;
+}
+
+.plyr__video-wrapper iframe {
+    -webkit-clip-path: none !important;
+    clip-path: none !important;
+    width: 100%;
+    height: 100%;
+}
+
+.plyr__controls {
+    -webkit-clip-path: none !important;
+    clip-path: none !important;
+}
+
+.plyr__volume {
+    max-width: 33px;
+    min-width: 0;
+}
+
+.plyr__volume input[data-plyr="volume"] {
+    display: none;
+    width: 87px;
+    position: absolute;
+    transform: rotate(270deg);
+    top: -42px;
+    left: -33px;
+    height: 25px;
+    padding-left: 18px;
+}
+
+.plyr__volume:hover input[data-plyr="volume"],
+.plyr__volume input[data-plyr="volume"]:hover {
+    display: block !important;
+}
+
+.plyr__control--overlaid {
+    opacity: 0.45;
+}
+
+.plyr__control--overlaid {
+    opacity: 0.5;
+}
+
+.grecaptcha-badge {
+    visibility: hidden;
+}

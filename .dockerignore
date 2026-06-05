@@ -1,0 +1,34 @@
+# .NET build outputs
+**/bin/
+**/obj/
+
+# Node.js
+**/node_modules/
+frontend/.next/
+frontend/.turbo/
+
+# Git
+.git/
+.gitignore
+
+# Secrets & local config
+deploy/.env.*
+deploy/*.secret
+**/*.local.json
+frontend/.env.local
+
+# Logs
+**/logs/
+**/*.log
+
+# OS
+**/.DS_Store
+**/Thumbs.db
+
+# Test projects
+**/tests/
+**/MLS.Tests/
+
+# Dev tools
+**/.vs/
+**/.vscode/

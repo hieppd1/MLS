@@ -1,0 +1,711 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useCreateQuizMutation } from "@/lib/features/quiz/quizApi";
+import { useListQuestionsQuery, useAddQuestionToQuizMutation } from "@/lib/features/quiz/questionApi";
+import type { QuestionListItem } from "@/lib/features/quiz/questionApi";
+import { useListQuizTypesQuery } from "@/lib/features/quiz/quizConfigApi";
+import {
+  QUIZ_TYPES_BY_MODE,
+  SKILL_TYPES,
+  DIFFICULTY_LABEL,
+  SKILL_LABEL,
+} from "@/lib/config/portalConfig";
+
+const MLS_NAVY = "#1565C0";
+const MLS_RED = "#e5173f";
+
+type Step = 0 | 1 | 2 | 3;
+type ExamMode = "Standard" | "OPIC" | "VSTEP";
+
+interface QuizForm {
+  title: string;
+  description: string;
+  quizType: string;
+  skillType: string;
+  timeLimitSeconds: string;
+  passingScore: string;
+  shuffleQuestions: boolean;
+  showCorrectAnswer: boolean;
+}
+
+const SKILL_OPTIONS = [{ value: "", label: "— Tất cả kỹ năng —" }, ...SKILL_TYPES];
+
+const PLATFORM_CARDS: {
+  mode: ExamMode;
+  label: string;
+  desc: string;
+  color: string;
+  textColor: string;
+  available: boolean;
+}[] = [
+  {
+    mode: "Standard",
+    label: "Tiêu chuẩn (Standard)",
+    desc: "Bài kiểm tra thông thường: xếp lớp, luyện tập, thi thử, ngữ pháp, từ vựng, nói, viết.",
+    color: "#EFF6FF",
+    textColor: "#1D4ED8",
+    available: true,
+  },
+  {
+    mode: "OPIC",
+    label: "OPIC",
+    desc: "Bài kiểm tra nói theo chuẩn OPIC: câu hỏi có audio, giới hạn thời gian trả lời và số lần nghe.",
+    color: "#F0FDF4",
+    textColor: "#15803D",
+    available: true,
+  },
+  {
+    mode: "VSTEP",
+    label: "VSTEP",
+    desc: "Bài kiểm tra theo chuẩn VSTEP: Nghe (35 MCQ), Đọc (40 MCQ), Viết (2 tasks), Nói (3 phần). Hỗ trợ đoạn văn/audio theo nhóm.",
+    color: "#FFF7ED",
+    textColor: "#C2410C",
+    available: true,
+  },
+];
+
+const STEP_LABELS = [
+  "Chọn nền tảng",
+  "Thông tin cơ bản",
+  "Chọn câu hỏi",
+  "Xác nhận",
+];
+
+const QUESTION_TYPE_LABELS: Record<string, string> = {
+  SingleChoice: "1 đáp án",
+  MultipleChoice: "Nhiều đáp án",
+  TrueFalse: "Đúng/Sai",
+  FillBlank: "Điền vào chỗ trống",
+  Speaking: "Nói",
+  SpeakingRecording: "Ghi âm",
+  OPICRolePlay: "OPIC Nhập vai",
+};
+
+export default function NewQuizPage() {
+  const router = useRouter();
+  const [step, setStep] = useState<Step>(0);
+  const [examMode, setExamMode] = useState<ExamMode>("Standard");
+
+  // Load quiz types from API; fall back to static portalConfig values
+  const { data: apiQuizTypes = [] } = useListQuizTypesQuery(
+    { examMode, activeOnly: true },
+    { skip: false }
+  );
+
+  // Build quiz type options: prefer API, fall back to static
+  const currentQuizTypes = useMemo<{ value: string; label: string }[]>(() => {
+    if (apiQuizTypes.length > 0) {
+      return apiQuizTypes.map((t) => ({ value: t.value, label: t.label }));
+    }
+    return QUIZ_TYPES_BY_MODE[examMode] as { value: string; label: string }[];
+  }, [apiQuizTypes, examMode]);
+  const [form, setForm] = useState<QuizForm>({
+    title: "",
+    description: "",
+    quizType: "PracticeQuiz",
+    skillType: "",
+    timeLimitSeconds: "",
+    passingScore: "70",
+    shuffleQuestions: true,
+    showCorrectAnswer: true,
+  });
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [qSearch, setQSearch] = useState("");
+  const [qType, setQType] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const [createQuiz, { isLoading: creating }] = useCreateQuizMutation();
+  const [addQuestion] = useAddQuestionToQuizMutation();
+
+  const { data: questions } = useListQuestionsQuery(
+    { page: 1, pageSize: 50, search: qSearch || undefined, type: qType || undefined },
+  );
+
+  function setF(key: keyof QuizForm, val: string | boolean) {
+    setForm((f) => ({ ...f, [key]: val }));
+  }
+
+  function selectPlatform(mode: ExamMode) {
+    setExamMode(mode);
+    // quizType will be set when currentQuizTypes reloads from API;
+    // pre-set to first static value as immediate placeholder
+    const first = QUIZ_TYPES_BY_MODE[mode as keyof typeof QUIZ_TYPES_BY_MODE][0];
+    setF("quizType", first.value);
+    setStep(1);
+  }
+
+  async function handleCreate() {
+    if (!form.title.trim()) { setError("Tên quiz không được để trống"); return; }
+    setError(null);
+    try {
+      const quiz = await createQuiz({
+        title: form.title,
+        description: form.description || undefined,
+        quizType: form.quizType,
+        skillType: form.skillType || undefined,
+        examMode: examMode,
+        timeLimitSeconds: form.timeLimitSeconds
+          ? parseInt(form.timeLimitSeconds) * 60
+          : undefined,
+        passingScore: parseFloat(form.passingScore) || 70,
+        shuffleQuestions: form.shuffleQuestions,
+        showCorrectAnswer: form.showCorrectAnswer,
+      }).unwrap();
+
+      for (let i = 0; i < selectedIds.length; i++) {
+        await addQuestion({
+          quizId: quiz.id,
+          questionId: selectedIds[i],
+          displayOrder: i + 1,
+        }).unwrap();
+      }
+
+      router.push(`/teacher/quizzes/${quiz.id}`);
+    } catch {
+      setError("Tạo quiz thất bại. Vui lòng thử lại.");
+    }
+  }
+
+  const toggleQuestion = (id: string) =>
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+
+  const platformLabel =
+    examMode === "Standard" ? "Tiêu chuẩn" :
+    examMode === "OPIC"     ? "OPIC" : "VSTEP";
+
+  return (
+    <div style={{ padding: 32, maxWidth: 820, margin: "0 auto" }}>
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
+        <button
+          onClick={() => router.back()}
+          style={{
+            display: "flex", alignItems: "center", gap: 6, color: "#6B7280",
+            background: "none", border: "none", cursor: "pointer", fontSize: 14,
+            marginBottom: 16, padding: 0,
+          }}
+        >
+          ← Quay lại danh sách
+        </button>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827" }}>Tạo Quiz mới</h1>
+      </div>
+
+      {/* Step indicator */}
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 32 }}>
+        {([0, 1, 2, 3] as Step[]).map((s, i) => (
+          <div key={s} style={{ display: "flex", alignItems: "center", flex: s < 3 ? 1 : 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+              <div
+                style={{
+                  width: 32, height: 32, borderRadius: "50%",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: step > s ? "#16A34A" : step === s ? MLS_NAVY : "#E5E7EB",
+                  color: step >= s ? "#fff" : "#9CA3AF",
+                  fontWeight: 700, fontSize: 14, flexShrink: 0,
+                }}
+              >
+                {step > s ? "✓" : s + 1}
+              </div>
+              <span
+                style={{
+                  fontSize: 13,
+                  color: step >= s ? (step === s ? MLS_NAVY : "#374151") : "#9CA3AF",
+                  fontWeight: step === s ? 700 : 400,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {STEP_LABELS[s]}
+              </span>
+            </div>
+            {i < 3 && (
+              <div
+                style={{
+                  flex: 1, height: 2,
+                  background: step > s ? "#16A34A" : "#E5E7EB",
+                  margin: "0 12px",
+                }}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {error && (
+        <div
+          style={{
+            marginBottom: 16, padding: "12px 16px", borderRadius: 10,
+            background: "#FEF2F2", color: MLS_RED, fontSize: 14,
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      {/* ── Step 0: Platform selector ────────────────────────────────────── */}
+      {step === 0 && (
+        <div>
+          <p style={{ color: "#6B7280", marginBottom: 24, fontSize: 14 }}>
+            Chọn nền tảng phù hợp. Nền tảng sẽ quyết định các loại bài kiểm tra và tính năng có sẵn.{" "}
+            <strong>Không thể thay đổi sau khi tạo.</strong>
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {PLATFORM_CARDS.map((card) => (
+              <button
+                key={card.mode}
+                onClick={() => selectPlatform(card.mode)}
+                disabled={!card.available}
+                style={{
+                  display: "flex", alignItems: "flex-start", gap: 16,
+                  padding: "20px 24px", borderRadius: 14,
+                  border: `2px solid ${card.available ? card.textColor + "40" : "#E5E7EB"}`,
+                  background: card.available ? card.color : "#F9FAFB",
+                  cursor: card.available ? "pointer" : "not-allowed",
+                  textAlign: "left", opacity: card.available ? 1 : 0.6,
+                }}
+                onMouseEnter={(e) => {
+                  if (card.available)
+                    e.currentTarget.style.boxShadow = `0 0 0 3px ${card.textColor}25`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: 17, fontWeight: 700,
+                      color: card.available ? card.textColor : "#9CA3AF",
+                      marginBottom: 6,
+                    }}
+                  >
+                    {card.label}
+                  </div>
+                  <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.6 }}>
+                    {card.desc}
+                  </div>
+                </div>
+                {card.available && (
+                  <div style={{ color: card.textColor, fontSize: 22, marginTop: 2 }}>→</div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 1: Basic info ───────────────────────────────────────────── */}
+      {step === 1 && (
+        <div
+          style={{
+            background: "#fff", borderRadius: 16, padding: 28,
+            boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+          }}
+        >
+          {/* Platform badge */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+            <span style={{ fontSize: 12, color: "#6B7280" }}>Nền tảng:</span>
+            <span
+              style={{
+                padding: "3px 12px", borderRadius: 20, fontSize: 13, fontWeight: 700,
+                background:
+                  examMode === "Standard" ? "#EFF6FF" :
+                  examMode === "OPIC" ? "#F0FDF4" : "#FFF7ED",
+                color:
+                  examMode === "Standard" ? "#1D4ED8" :
+                  examMode === "OPIC" ? "#15803D" : "#C2410C",
+              }}
+            >
+              {platformLabel}
+            </span>
+            <button
+              onClick={() => setStep(0)}
+              style={{
+                fontSize: 12, color: "#6B7280", background: "none",
+                border: "none", cursor: "pointer", textDecoration: "underline",
+              }}
+            >
+              Đổi nền tảng
+            </button>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div>
+              <label
+                style={{
+                  display: "block", fontSize: 14, fontWeight: 600,
+                  color: "#374151", marginBottom: 6,
+                }}
+              >
+                Tên quiz *
+              </label>
+              <input
+                value={form.title}
+                onChange={(e) => setF("title", e.target.value)}
+                placeholder="Ví dụ: Kiểm tra từ vựng Unit 5"
+                style={{
+                  width: "100%", padding: "10px 14px", borderRadius: 8,
+                  border: "1px solid #D1D5DB", fontSize: 14, outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+            <div>
+              <label
+                style={{
+                  display: "block", fontSize: 14, fontWeight: 600,
+                  color: "#374151", marginBottom: 6,
+                }}
+              >
+                Mô tả
+              </label>
+              <textarea
+                value={form.description}
+                onChange={(e) => setF("description", e.target.value)}
+                rows={3}
+                placeholder="Mô tả ngắn về bài kiểm tra..."
+                style={{
+                  width: "100%", padding: "10px 14px", borderRadius: 8,
+                  border: "1px solid #D1D5DB", fontSize: 14, outline: "none",
+                  resize: "vertical", boxSizing: "border-box",
+                }}
+              />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div>
+                <label
+                  style={{
+                    display: "block", fontSize: 14, fontWeight: 600,
+                    color: "#374151", marginBottom: 6,
+                  }}
+                >
+                  Loại quiz
+                </label>
+                <select
+                  value={form.quizType}
+                  onChange={(e) => setF("quizType", e.target.value)}
+                  style={{
+                    width: "100%", padding: "10px 14px", borderRadius: 8,
+                    border: "1px solid #D1D5DB", fontSize: 14, background: "#fff",
+                  }}
+                >
+                  {currentQuizTypes.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label
+                  style={{
+                    display: "block", fontSize: 14, fontWeight: 600,
+                    color: "#374151", marginBottom: 6,
+                  }}
+                >
+                  Kỹ năng
+                </label>
+                <select
+                  value={form.skillType}
+                  onChange={(e) => setF("skillType", e.target.value)}
+                  style={{
+                    width: "100%", padding: "10px 14px", borderRadius: 8,
+                    border: "1px solid #D1D5DB", fontSize: 14, background: "#fff",
+                  }}
+                >
+                  {SKILL_OPTIONS.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label
+                  style={{
+                    display: "block", fontSize: 14, fontWeight: 600,
+                    color: "#374151", marginBottom: 6,
+                  }}
+                >
+                  Thời gian (phút) — để trống = không giới hạn
+                </label>
+                <input
+                  value={form.timeLimitSeconds}
+                  onChange={(e) => setF("timeLimitSeconds", e.target.value)}
+                  type="number"
+                  min="1"
+                  placeholder="Ví dụ: 30"
+                  style={{
+                    width: "100%", padding: "10px 14px", borderRadius: 8,
+                    border: "1px solid #D1D5DB", fontSize: 14, boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              <div>
+                <label
+                  style={{
+                    display: "block", fontSize: 14, fontWeight: 600,
+                    color: "#374151", marginBottom: 6,
+                  }}
+                >
+                  Điểm đậu (%)
+                </label>
+                <input
+                  value={form.passingScore}
+                  onChange={(e) => setF("passingScore", e.target.value)}
+                  type="number"
+                  min="0"
+                  max="100"
+                  style={{
+                    width: "100%", padding: "10px 14px", borderRadius: 8,
+                    border: "1px solid #D1D5DB", fontSize: 14, boxSizing: "border-box",
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 24 }}>
+              {(
+                [
+                  ["shuffleQuestions", "Câu hỏi ngẫu nhiên"],
+                  ["showCorrectAnswer", "Hiển thị đáp án sau khi nộp"],
+                ] as [keyof QuizForm, string][]
+              ).map(([key, label]) => (
+                <label
+                  key={key}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    cursor: "pointer", fontSize: 14, color: "#374151",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={form[key] as boolean}
+                    onChange={(e) => setF(key, e.target.checked)}
+                    style={{ width: 16, height: 16, accentColor: MLS_NAVY }}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24 }}>
+            <button
+              onClick={() => setStep(0)}
+              style={{
+                padding: "12px 24px", borderRadius: 10, border: "1px solid #D1D5DB",
+                background: "#fff", cursor: "pointer", fontWeight: 600,
+              }}
+            >
+              ← Trở lại
+            </button>
+            <button
+              onClick={() => {
+                if (!form.title.trim()) { setError("Tên quiz không được để trống"); return; }
+                setError(null);
+                setStep(2);
+              }}
+              style={{
+                padding: "12px 28px", borderRadius: 10, border: "none",
+                background: MLS_NAVY, color: "#fff", cursor: "pointer",
+                fontWeight: 700, fontSize: 15,
+              }}
+            >
+              Tiếp theo →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 2: Question bank ─────────────────────────────────────────── */}
+      {step === 2 && (
+        <div
+          style={{
+            background: "#fff", borderRadius: 16, padding: 28,
+            boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+          }}
+        >
+          <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+            <input
+              value={qSearch}
+              onChange={(e) => setQSearch(e.target.value)}
+              placeholder="Tìm câu hỏi..."
+              style={{ flex: 1, padding: "8px 14px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 14 }}
+            />
+            <select
+              value={qType}
+              onChange={(e) => setQType(e.target.value)}
+              style={{
+                padding: "8px 14px", borderRadius: 8, border: "1px solid #D1D5DB",
+                fontSize: 14, background: "#fff",
+              }}
+            >
+              <option value="">Tất cả loại</option>
+              {Object.entries(QUESTION_TYPE_LABELS).map(([val, lbl]) => (
+                <option key={val} value={val}>{lbl}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ marginBottom: 12, fontSize: 13, color: "#6B7280" }}>
+            Đã chọn: <strong>{selectedIds.length}</strong> câu hỏi
+          </div>
+          <div
+            style={{
+              display: "flex", flexDirection: "column", gap: 8,
+              maxHeight: 400, overflowY: "auto",
+            }}
+          >
+            {(questions?.items ?? []).map((q: QuestionListItem) => {
+              const sel = selectedIds.includes(q.id);
+              return (
+                <button
+                  key={q.id}
+                  onClick={() => toggleQuestion(q.id)}
+                  style={{
+                    display: "flex", alignItems: "flex-start", gap: 12,
+                    padding: "12px 14px", borderRadius: 10,
+                    border: `2px solid ${sel ? MLS_NAVY : "#E5E7EB"}`,
+                    background: sel ? "#EFF6FF" : "#FAFAFA",
+                    cursor: "pointer", textAlign: "left",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 20, height: 20, borderRadius: 4, flexShrink: 0,
+                      border: `2px solid ${sel ? MLS_NAVY : "#D1D5DB"}`,
+                      background: sel ? MLS_NAVY : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      marginTop: 2,
+                    }}
+                  >
+                    {sel && (
+                      <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#fff">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, color: "#111827", marginBottom: 4 }}>
+                      {q.content.slice(0, 120)}
+                      {q.content.length > 120 ? "..." : ""}
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <span style={{ fontSize: 11, background: "#E5E7EB", borderRadius: 4, padding: "2px 8px", color: "#6B7280" }}>
+                        {QUESTION_TYPE_LABELS[q.type] ?? q.type}
+                      </span>
+                      <span style={{ fontSize: 11, background: "#E5E7EB", borderRadius: 4, padding: "2px 8px", color: "#6B7280" }}>
+                        {DIFFICULTY_LABEL[q.difficulty] ?? q.difficulty}
+                      </span>
+                      <span style={{ fontSize: 11, background: "#E5E7EB", borderRadius: 4, padding: "2px 8px", color: "#6B7280" }}>
+                        {SKILL_LABEL[q.skillType] ?? q.skillType}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+            {(questions?.items ?? []).length === 0 && (
+              <p style={{ textAlign: "center", color: "#9CA3AF", padding: "32px 0" }}>
+                Không có câu hỏi phù hợp
+              </p>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "space-between" }}>
+            <button
+              onClick={() => setStep(1)}
+              style={{
+                padding: "12px 24px", borderRadius: 10, border: "1px solid #D1D5DB",
+                background: "#fff", cursor: "pointer", fontWeight: 600,
+              }}
+            >
+              ← Trở lại
+            </button>
+            <button
+              onClick={() => setStep(3)}
+              style={{
+                padding: "12px 28px", borderRadius: 10, border: "none",
+                background: MLS_NAVY, color: "#fff", cursor: "pointer",
+                fontWeight: 700, fontSize: 15,
+              }}
+            >
+              Tiếp theo →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 3: Confirm ───────────────────────────────────────────────── */}
+      {step === 3 && (
+        <div
+          style={{
+            background: "#fff", borderRadius: 16, padding: 28,
+            boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+          }}
+        >
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", marginBottom: 20 }}>
+            Xác nhận thông tin
+          </h2>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+            {[
+              { label: "Tên quiz", value: form.title },
+              { label: "Nền tảng", value: platformLabel },
+              {
+                label: "Loại quiz",
+                value:
+                  currentQuizTypes.find((t) => t.value === form.quizType)?.label ??
+                  form.quizType,
+              },
+              {
+                label: "Kỹ năng",
+                value: form.skillType
+                  ? (SKILL_LABEL[form.skillType] ?? form.skillType)
+                  : "Tất cả",
+              },
+              {
+                label: "Thời gian",
+                value: form.timeLimitSeconds
+                  ? `${form.timeLimitSeconds} phút`
+                  : "Không giới hạn",
+              },
+              { label: "Điểm đậu", value: `${form.passingScore}%` },
+              { label: "Câu hỏi đã chọn", value: `${selectedIds.length} câu` },
+            ].map(({ label, value }) => (
+              <div
+                key={label}
+                style={{ background: "#F8FAFC", borderRadius: 8, padding: "10px 14px" }}
+              >
+                <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 2 }}>{label}</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "#111827" }}>{value}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "space-between" }}>
+            <button
+              onClick={() => setStep(2)}
+              style={{
+                padding: "12px 24px", borderRadius: 10, border: "1px solid #D1D5DB",
+                background: "#fff", cursor: "pointer", fontWeight: 600,
+              }}
+            >
+              ← Trở lại
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={creating}
+              style={{
+                padding: "12px 32px", borderRadius: 10, border: "none",
+                background: MLS_NAVY, color: "#fff",
+                cursor: creating ? "not-allowed" : "pointer",
+                fontWeight: 700, fontSize: 15, opacity: creating ? 0.7 : 1,
+              }}
+            >
+              {creating ? "Đang tạo..." : "Tạo quiz ✓"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

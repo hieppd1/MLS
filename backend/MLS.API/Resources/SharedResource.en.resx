@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" />
+              <xsd:attribute name="xml:space" default="preserve" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+
+  <!-- Auth -->
+  <data name="Unauthorized"><value>You are not authenticated.</value></data>
+  <data name="Forbidden"><value>You are not authorized to perform this action.</value></data>
+  <data name="WrongCredentials"><value>Incorrect email or password.</value></data>
+  <data name="EmailAlreadyExists"><value>This email is already registered.</value></data>
+  <data name="InvalidToken"><value>Token is invalid or has expired.</value></data>
+
+  <!-- Generic -->
+  <data name="NotFound"><value>The requested resource was not found.</value></data>
+  <data name="ServerError"><value>An error occurred. Please try again.</value></data>
+  <data name="ValidationFailed"><value>Invalid data.</value></data>
+  <data name="FileEmpty"><value>File cannot be empty.</value></data>
+
+  <!-- Orders / Cart -->
+  <data name="CartEmpty"><value>Cart is empty.</value></data>
+  <data name="OrderNotFound"><value>Order not found.</value></data>
+  <data name="OrderAlreadyPaid"><value>This order has already been paid.</value></data>
+  <data name="PaymentConfirmed"><value>Payment has been confirmed.</value></data>
+  <data name="PaymentCannotConfirm"><value>Order does not exist or cannot be confirmed.</value></data>
+
+  <!-- Courses -->
+  <data name="CourseNotFound"><value>Course not found.</value></data>
+  <data name="AlreadyEnrolled"><value>You are already enrolled in this course.</value></data>
+  <data name="NotEnrolled"><value>You are not enrolled in this course.</value></data>
+
+  <!-- Books -->
+  <data name="BookNotFound"><value>Book not found.</value></data>
+  <data name="BookAlreadyOwned"><value>You already own this book.</value></data>
+
+  <!-- Users -->
+  <data name="UserNotFound"><value>User not found.</value></data>
+  <data name="InvalidLocale"><value>Unsupported locale.</value></data>
+  <data name="LocaleUpdated"><value>Locale updated successfully.</value></data>
+
+  <!-- Quiz / Placement -->
+  <data name="QuizNotFound"><value>Quiz not found.</value></data>
+  <data name="AttemptNotFound"><value>Attempt not found.</value></data>
+  <data name="PlacementAlreadyDone"><value>You have already completed the placement test.</value></data>
+
+  <!-- File upload -->
+  <data name="NoFileUploaded"><value>No file uploaded.</value></data>
+  <data name="FileTypeNotSupported"><value>File type not supported.</value></data>
+  <data name="FileSizeExceeded"><value>File size must not exceed 50MB.</value></data>
+  <data name="ImageOnlyAllowed"><value>Only JPEG, PNG, WebP, or GIF images are allowed.</value></data>
+  <data name="FileSizeExceeded5MB"><value>File size must not exceed 5MB.</value></data>
+  <data name="AudioFileEmpty"><value>Audio file is empty.</value></data>
+  <data name="AudioFormatUnsupported"><value>Unsupported audio format. Use WebM, MP3, WAV, OGG, or M4A.</value></data>
+
+  <!-- Writing / Speaking submissions -->
+  <data name="EssayTextRequired"><value>Essay text is required.</value></data>
+  <data name="WordCountPositive"><value>Word count must be positive.</value></data>
+  <data name="GradingInProgress"><value>Grading in progress.</value></data>
+  <data name="TokenRequired"><value>Device token is required.</value></data>
+
+  <!-- Quiz / Attempt -->
+  <data name="QuizPublished"><value>Quiz published.</value></data>
+  <data name="QuizArchived"><value>Quiz archived.</value></data>
+  <data name="PlacementQuizNotFound"><value>No published placement quiz found.</value></data>
+  <data name="AttemptNotFoundOrNotInProgress"><value>Attempt not found or not in progress.</value></data>
+  <data name="AttemptAbandoned"><value>Attempt abandoned.</value></data>
+  <data name="AssetNotFoundOrNotQuiz"><value>Asset not found or not a QuizBlock.</value></data>
+  <data name="EnrolledSuccess"><value>Enrolled successfully.</value></data>
+</root>

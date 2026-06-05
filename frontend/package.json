@@ -1,0 +1,42 @@
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@ckeditor/ckeditor5-build-classic": "^41.4.2",
+    "@ckeditor/ckeditor5-react": "^11.1.2",
+    "@hookform/resolvers": "^5.2.2",
+    "@microsoft/signalr": "^10.0.0",
+    "@react-oauth/google": "^0.13.5",
+    "@reduxjs/toolkit": "^2.11.2",
+    "date-fns": "^4.1.0",
+    "framer-motion": "^12.39.0",
+    "hls.js": "^1.6.16",
+    "js-cookie": "^3.0.5",
+    "lucide-react": "^1.16.0",
+    "next": "16.2.5",
+    "next-intl": "^4.13.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.75.0",
+    "react-redux": "^9.2.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/js-cookie": "^3.0.6",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.5",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

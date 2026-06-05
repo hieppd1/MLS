@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f9fafb;
+  --foreground: #111827;
+
+  /* Brand palette */
+  --brand-blue:       #1565C0;
+  --brand-blue-light: #1976D2;
+  --brand-blue-dark:  #0D47A1;
+  --brand-accent:     #FF6B35;
+  --brand-yellow:     #FFD600;
+  --brand-green:      #2E7D32;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-be-vietnam), var(--font-geist-sans), sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Korean locale font override */
+:lang(ko) {
+  font-family: var(--font-noto-kr), var(--font-be-vietnam), sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hide scrollbar in Chrome/Safari for horizontal scroll containers */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Custom thin scrollbar — visible only on hover */
+.scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.scroll-area:hover {
+  scrollbar-color: rgba(124, 58, 237, 0.45) transparent;
+}
+.scroll-area::-webkit-scrollbar {
+  width: 4px;
+}
+.scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-area::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+.scroll-area:hover::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.45);
+}
+.scroll-area:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.75);
+}
+
+/* Smooth fade transition for auth pages */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.3s ease-out both; }

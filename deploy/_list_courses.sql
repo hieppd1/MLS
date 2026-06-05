@@ -1,0 +1,1 @@
+﻿SELECT "Id", "Title" FROM tenant_demo."Courses" ORDER BY "CreatedAt";

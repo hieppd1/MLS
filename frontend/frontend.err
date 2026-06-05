@@ -1,0 +1,32 @@
+[browser] The <CKEditor> component requires using CKEditor 5 in version 42+ or nightly build.
+[browser] toolbarview-item-unavailable { item: [32m'underline'[39m } 
+Read more: https://ckeditor.com/docs/ckeditor5/latest/support/error-codes.html#error-toolbarview-item-unavailable (file://D:/HiepPD/MLS/frontend/.next/dev/static/chunks/node_modules_%40ckeditor_ckeditor5-build-classic_build_ckeditor_0-cs5kk.js:4474:25)
+[browser] The <CKEditor> component requires using CKEditor 5 in version 42+ or nightly build.
+[browser] toolbarview-item-unavailable { item: [32m'underline'[39m } 
+Read more: https://ckeditor.com/docs/ckeditor5/latest/support/error-codes.html#error-toolbarview-item-unavailable (file://D:/HiepPD/MLS/frontend/.next/dev/static/chunks/node_modules_%40ckeditor_ckeditor5-build-classic_build_ckeditor_0-cs5kk.js:4474:25)
+[browser] [GSI_LOGGER]: Provided button width is invalid: 100% (https://accounts.google.com/gsi/client:85:460)
+[browser] The <CKEditor> component requires using CKEditor 5 in version 42+ or nightly build.
+[browser] The <CKEditor> component requires using CKEditor 5 in version 42+ or nightly build.
+[browser] toolbarview-item-unavailable { item: [32m'underline'[39m } 
+Read more: https://ckeditor.com/docs/ckeditor5/latest/support/error-codes.html#error-toolbarview-item-unavailable (file://D:/HiepPD/MLS/frontend/.next/dev/static/chunks/node_modules_%40ckeditor_ckeditor5-build-classic_build_ckeditor_0-cs5kk.js:4474:25)
+[browser] toolbarview-item-unavailable { item: [32m'underline'[39m } 
+Read more: https://ckeditor.com/docs/ckeditor5/latest/support/error-codes.html#error-toolbarview-item-unavailable (file://D:/HiepPD/MLS/frontend/.next/dev/static/chunks/node_modules_%40ckeditor_ckeditor5-build-classic_build_ckeditor_0-cs5kk.js:4474:25)
+⚠ Blocked cross-origin request to Next.js dev resource /_next/webpack-hmr from "knitted-scrubbiest-tona.ngrok-free.dev".
+Cross-origin access to Next.js dev resources is blocked by default for safety.
+
+To allow this host in development, add it to "allowedDevOrigins" in next.config.js and restart the dev server:
+
+// next.config.js
+module.exports = {
+  allowedDevOrigins: ['knitted-scrubbiest-tona.ngrok-free.dev'],
+}
+
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+[browser] [GSI_LOGGER]: Provided button width is invalid: 100% (https://accounts.google.com/gsi/client:85:460)
+[browser] The <CKEditor> component requires using CKEditor 5 in version 42+ or nightly build.
+[browser] The <CKEditor> component requires using CKEditor 5 in version 42+ or nightly build.
+[browser] toolbarview-item-unavailable { item: [32m'underline'[39m } 
+Read more: https://ckeditor.com/docs/ckeditor5/latest/support/error-codes.html#error-toolbarview-item-unavailable (file://D:/HiepPD/MLS/frontend/.next/dev/static/chunks/node_modules_%40ckeditor_ckeditor5-build-classic_build_ckeditor_0-cs5kk.js:4474:25)
+[browser] toolbarview-item-unavailable { item: [32m'underline'[39m } 
+Read more: https://ckeditor.com/docs/ckeditor5/latest/support/error-codes.html#error-toolbarview-item-unavailable (file://D:/HiepPD/MLS/frontend/.next/dev/static/chunks/node_modules_%40ckeditor_ckeditor5-build-classic_build_ckeditor_0-cs5kk.js:4474:25)
+^C^C
