@@ -1,15 +1,18 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
+using MLS.API.Resources;
 using MLS.Application.Quiz.Commands;
 using MLS.Application.Quiz.Queries;
+using MLS.Application.Quiz.Services;
 
 namespace MLS.API.Controllers;
 
 [ApiController]
 [Route("api/v1/quizzes")]
 [Authorize]
-public class QuizzesController(IMediator mediator) : ControllerBase
+public class QuizzesController(IMediator mediator, IStringLocalizer<SharedResource> loc) : ControllerBase
 {
     private Guid CurrentUserId =>
         Guid.Parse(User.FindFirst("sub")?.Value
@@ -87,14 +90,14 @@ public class QuizzesController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> Publish(Guid id, CancellationToken ct)
     {
         var ok = await mediator.Send(new PublishQuizCommand(id), ct);
-        return ok ? Ok(new { message = "Quiz published." }) : NotFound();
+        return ok ? Ok(new { message = loc["QuizPublished"].Value }) : NotFound();
     }
 
     [HttpPost("{id:guid}/archive")]
     public async Task<IActionResult> Archive(Guid id, CancellationToken ct)
     {
         var ok = await mediator.Send(new ArchiveQuizCommand(id), ct);
-        return ok ? Ok(new { message = "Quiz archived." }) : NotFound();
+        return ok ? Ok(new { message = loc["QuizArchived"].Value }) : NotFound();
     }
 
     // ── My Attempts ───────────────────────────────────────────────────────────
@@ -142,7 +145,35 @@ public class QuizzesController(IMediator mediator) : ControllerBase
     [HttpPost("{id:guid}/start")]
     public async Task<IActionResult> StartAttempt(Guid id, CancellationToken ct)
     {
-        var result = await mediator.Send(new StartAttemptCommand(id, CurrentUserId), ct);
+        try
+        {
+            var result = await mediator.Send(new StartAttemptCommand(id, CurrentUserId), ct);
+            return Ok(result);
+        }
+        catch (TestQuotaExceededException ex)
+        {
+            return StatusCode(429, new
+            {
+                code    = "TEST_QUOTA_EXCEEDED",
+                message = ex.Message,
+                quota   = ex.Quota,
+                used    = ex.Used,
+                isMonthly = ex.IsMonthly,
+                resetDate = ex.ResetDate?.ToString("yyyy-MM-dd"),
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
+    // ── Test quota for quiz ───────────────────────────────────────────────────
+
+    [HttpGet("{id:guid}/quota")]
+    public async Task<IActionResult> GetTestQuota(Guid id, CancellationToken ct)
+    {
+        var result = await mediator.Send(new GetTestQuotaQuery(id, CurrentUserId), ct);
         return Ok(result);
     }
 }

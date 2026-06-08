@@ -3,15 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSelector } from "react-redux";
+import { useTranslations } from "next-intl";
 import type { RootState } from "@/lib/store";
 import { safeImgUrl } from "@/lib/utils";
-import MessagesSidebar from "@/app/_components/MessagesSidebar";
+import AppShell from "@/app/_components/AppShell";
 import {
   useGetTeacherListQuery,
   useFollowTeacherMutation,
   useUnfollowTeacherMutation,
   type TeacherProfileDto,
 } from "@/lib/features/teachers/teachersApi";
+import { useFormatters } from "@/lib/hooks/useFormatters";
 
 /* ═══════════════════════════════════════════════════════════════
    LEFT NAV
@@ -92,6 +94,8 @@ const AVATAR_GRADIENTS = [
 function TeacherFollowCard({ teacher, onUnfollow }: { teacher: TeacherProfileDto; onUnfollow: () => void }) {
   const gradIdx = teacher.displayName.charCodeAt(0) % AVATAR_GRADIENTS.length;
   const initials = teacher.displayName.split(" ").slice(-2).map(w => w[0]).join("").toUpperCase();
+  const { fmtNumber } = useFormatters();
+  const t = useTranslations("following_page");
 
   return (
     <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #E5E7EB", overflow: "hidden", display: "flex", flexDirection: "column" }}>
@@ -126,9 +130,9 @@ function TeacherFollowCard({ teacher, onUnfollow }: { teacher: TeacherProfileDto
         {/* Stats row */}
         <div style={{ display: "flex", gap: 0, marginTop: 14, borderTop: "1px solid #F3F4F6", paddingTop: 12 }}>
           {[
-            { label: "Khoá học", value: teacher.courseCount },
-            { label: "Học viên",  value: teacher.totalStudents.toLocaleString("vi-VN") },
-            { label: "Người theo", value: teacher.followerCount.toLocaleString("vi-VN") },
+            { label: t("stat_courses"), value: teacher.courseCount },
+            { label: t("stat_students"),  value: fmtNumber(teacher.totalStudents) },
+            { label: t("stat_followers"), value: fmtNumber(teacher.followerCount) },
           ].map((stat, i) => (
             <div key={stat.label} style={{ flex: 1, textAlign: "center", borderRight: i < 2 ? "1px solid #F3F4F6" : "none" }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#1565C0" }}>{stat.value}</div>
@@ -140,10 +144,10 @@ function TeacherFollowCard({ teacher, onUnfollow }: { teacher: TeacherProfileDto
         {/* Actions */}
         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
           <Link href={`/giao-vien/${teacher.slug}`} style={{ flex: 1, background: "#EFF6FF", color: "#1565C0", border: "none", borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 600, textDecoration: "none", textAlign: "center", cursor: "pointer" }}>
-            Xem hồ sơ
+            {t("view_profile")}
           </Link>
           <button onClick={onUnfollow} style={{ flex: 1, background: "#fff", color: "#6B7280", border: "1px solid #E5E7EB", borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
-            Bỏ theo dõi
+            {t("unfollow_btn")}
           </button>
         </div>
       </div>
@@ -156,11 +160,9 @@ function TeacherFollowCard({ teacher, onUnfollow }: { teacher: TeacherProfileDto
 ═══════════════════════════════════════════════════════════════ */
 export default function FollowingPage() {
   const isLoggedIn = useSelector((s: RootState) => !!s.auth?.accessToken);
+  const t = useTranslations("following_page");
 
-  const [chatSearch,     setChatSearch]     = useState("");
-  const [chatTab,        setChatTab]        = useState<"all" | "unread">("all");
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [search,         setSearch]         = useState("");
+  const [search, setSearch] = useState("");
 
   const { data: teachers, isLoading } = useGetTeacherListQuery({ page: 1, pageSize: 50 });
   const [unfollowTeacher] = useUnfollowTeacherMutation();
@@ -169,13 +171,6 @@ export default function FollowingPage() {
   const filteredTeachers = followedTeachers.filter(t =>
     !search || t.displayName.toLowerCase().includes(search.toLowerCase())
   );
-
-  const filteredChats = MOCK_CHATS.filter((c) => {
-    if (chatSearch && !c.name.toLowerCase().includes(chatSearch.toLowerCase()) &&
-        !c.lastMsg.toLowerCase().includes(chatSearch.toLowerCase())) return false;
-    if (chatTab === "unread" && c.unread === 0) return false;
-    return true;
-  });
 
   return (
     <>
@@ -188,24 +183,13 @@ export default function FollowingPage() {
         .fw-scroll:hover { scrollbar-color: rgba(0,0,0,0.18) transparent; }
       `}</style>
 
-      <div style={{ display: "flex", height: "calc(100vh - 56px)", overflow: "hidden", background: "#F3F4F6" }}>
+      <AppShell activeNavId="following">
 
         {/* ═══ COL 1: LEFT NAV ════════════════════════════════════ */}
-        <aside className="fw-scroll" style={{ width: 72, flexShrink: 0, background: "white", borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 8, overflowY: "auto", zIndex: 10 }}>
-          {LEFT_NAV.map((item) => {
-            const locked = item.requireAuth && !isLoggedIn;
-            const active = item.id === "following";
-            return (
-              <Link key={item.id} href={locked ? "/login" : item.href} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "10px 4px", width: "100%", textAlign: "center", textDecoration: "none", color: active ? "#1565C0" : locked ? "#D1D5DB" : "#6B7280", background: active ? "#EFF6FF" : "transparent", borderTop: "none", borderRight: "none", borderBottom: "none", borderLeft: active ? "3px solid #1565C0" : "3px solid transparent" }} title={item.label}>
-                {item.icon}
-                <span style={{ fontSize: 9, fontWeight: 500, lineHeight: 1.2 }}>{item.label}</span>
-              </Link>
-            );
-          })}
-        </aside>
+
 
         {/* ═══ COL 2: TIN NHẮN — shared MessagesSidebar ══════════ */}
-        <MessagesSidebar />
+
 
         {/* ═══ COL 3: ĐANG THEO DÕI ════════════════════════════════ */}
         <main className="fw-scroll" style={{ flex: 1, minWidth: 0, background: "#F9FAFB", display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -213,14 +197,14 @@ export default function FollowingPage() {
           <div style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "20px 28px", flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
               <div>
-                <h1 style={{ fontSize: 20, fontWeight: 800, color: "#111827", margin: 0 }}>Đang theo dõi</h1>
+                <h1 style={{ fontSize: 20, fontWeight: 800, color: "#111827", margin: 0 }}>{t("title")}</h1>
                 <p style={{ fontSize: 13, color: "#6B7280", margin: "4px 0 0" }}>
-                  {isLoading ? "Đang tải..." : `${followedTeachers.length} giảng viên đang theo dõi`}
+                  {isLoading ? t("loading") : t("count", { count: followedTeachers.length })}
                 </p>
               </div>
               <div style={{ position: "relative" }}>
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" /></svg>
-                <input type="text" placeholder="Tìm giảng viên..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 36, paddingRight: 14, paddingTop: 9, paddingBottom: 9, border: "1px solid #E5E7EB", borderRadius: 20, fontSize: 13, outline: "none", width: 220, background: "#F9FAFB" }} />
+                <input type="text" placeholder={t("search_placeholder")} value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 36, paddingRight: 14, paddingTop: 9, paddingBottom: 9, border: "1px solid #E5E7EB", borderRadius: 20, fontSize: 13, outline: "none", width: 220, background: "#F9FAFB" }} />
               </div>
             </div>
           </div>
@@ -244,21 +228,21 @@ export default function FollowingPage() {
             ) : !isLoggedIn ? (
               <div style={{ padding: "80px 0", textAlign: "center" }}>
                 <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
-                <p style={{ fontSize: 16, fontWeight: 600, color: "#374151", marginBottom: 8 }}>Vui lòng đăng nhập</p>
-                <p style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 20 }}>Đăng nhập để xem danh sách giảng viên đang theo dõi</p>
-                <Link href="/login" style={{ background: "#1565C0", color: "#fff", padding: "10px 24px", borderRadius: 8, textDecoration: "none", fontSize: 14, fontWeight: 600 }}>Đăng nhập</Link>
+                <p style={{ fontSize: 16, fontWeight: 600, color: "#374151", marginBottom: 8 }}>{t("not_logged_in_title")}</p>
+                <p style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 20 }}>{t("not_logged_in_hint")}</p>
+                <Link href="/login" style={{ background: "#1565C0", color: "#fff", padding: "10px 24px", borderRadius: 8, textDecoration: "none", fontSize: 14, fontWeight: 600 }}>{t("login_button")}</Link>
               </div>
             ) : filteredTeachers.length === 0 ? (
               <div style={{ padding: "80px 0", textAlign: "center" }}>
                 <div style={{ fontSize: 48, marginBottom: 16 }}>👨‍🏫</div>
                 <p style={{ fontSize: 16, fontWeight: 600, color: "#374151", marginBottom: 8 }}>
-                  {search ? "Không tìm thấy giảng viên" : "Chưa theo dõi giảng viên nào"}
+                  {search ? t("not_found_title") : t("empty_title")}
                 </p>
                 <p style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 20 }}>
-                  {search ? "Thử tìm với từ khoá khác" : "Theo dõi giảng viên để nhận thông báo khoá học mới nhất"}
+                  {search ? t("not_found_hint") : t("empty_hint")}
                 </p>
                 {!search && (
-                  <Link href="/giao-vien" style={{ background: "#1565C0", color: "#fff", padding: "10px 24px", borderRadius: 8, textDecoration: "none", fontSize: 14, fontWeight: 600 }}>Khám phá giảng viên</Link>
+                  <Link href="/giao-vien" style={{ background: "#1565C0", color: "#fff", padding: "10px 24px", borderRadius: 8, textDecoration: "none", fontSize: 14, fontWeight: 600 }}>{t("discover_button")}</Link>
                 )}
               </div>
             ) : (
@@ -274,7 +258,7 @@ export default function FollowingPage() {
             )}
           </div>
         </main>
-      </div>
+      </AppShell>
     </>
   );
 }

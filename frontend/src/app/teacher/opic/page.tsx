@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useGetOPICAnalyticsQuery } from "@/lib/features/teacher/teacherApi";
 
 const MLS_NAVY = "#1565C0";
@@ -10,14 +11,6 @@ const LEVEL_COLORS: Record<string, string> = {
   NH: "#9CA3AF", IL: "#60A5FA", IM1: "#34D399", IM2: "#FBBF24",
   IM3: "#F97316", IH: "#A855F7", AL: "#EF4444",
 };
-
-const SKILL_KEYS = [
-  { key: "avgPronunciation",   label: "Phát âm",         color: "#7C3AED" },
-  { key: "avgFluency",         label: "Lưu loát",         color: "#0891B2" },
-  { key: "avgCoherence",       label: "Mạch lạc",         color: "#059669" },
-  { key: "avgVocabulary",      label: "Từ vựng",          color: "#D97706" },
-  { key: "avgTaskAchievement", label: "Hoàn thành nhiệm vụ", color: MLS_NAVY },
-] as const;
 
 function ScoreBar({ value, color, max = 10 }: { value: number; color: string; max?: number }) {
   const pct = Math.min((value / max) * 100, 100);
@@ -34,6 +27,15 @@ function ScoreBar({ value, color, max = 10 }: { value: number; color: string; ma
 }
 
 export default function OPICAnalyticsPage() {
+  const t = useTranslations("teacher_portal");
+  const ta = useTranslations("teacher_opic_analytics");
+  const SKILL_KEYS = [
+    { key: "avgPronunciation" as const,   label: ta("skill_pronunciation"),   color: "#7C3AED" },
+    { key: "avgFluency" as const,         label: ta("skill_fluency"),         color: "#0891B2" },
+    { key: "avgCoherence" as const,       label: ta("skill_coherence"),       color: "#059669" },
+    { key: "avgVocabulary" as const,      label: ta("skill_vocabulary"),      color: "#D97706" },
+    { key: "avgTaskAchievement" as const, label: ta("skill_task_completion"), color: MLS_NAVY },
+  ];
   const { data, isLoading, error } = useGetOPICAnalyticsQuery();
 
   if (isLoading) {
@@ -50,7 +52,7 @@ export default function OPICAnalyticsPage() {
     return (
       <div style={{ padding: 32 }}>
         <div style={{ padding: "20px 24px", borderRadius: 12, background: "#FEF2F2", color: "#DC2626", fontSize: 14 }}>
-          Không thể tải dữ liệu. Vui lòng thử lại.
+          {t("opic_error")}
         </div>
       </div>
     );
@@ -71,23 +73,23 @@ export default function OPICAnalyticsPage() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827", margin: 0 }}>OPIC Analytics</h1>
-          <p style={{ fontSize: 13, color: "#9CA3AF", marginTop: 4 }}>Tổng quan kết quả học viên OPIC</p>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827", margin: 0 }}>{t("opic_analytics_title")}</h1>
+          <p style={{ fontSize: 13, color: "#9CA3AF", marginTop: 4 }}>{t("opic_subtitle")}</p>
         </div>
         <Link href="/teacher/opic/students"
           style={{ padding: "10px 20px", borderRadius: 10, border: `1px solid ${MLS_NAVY}`, color: MLS_NAVY, textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
-          Xem học viên →
+          {t("opic_view_students")}
         </Link>
       </div>
 
       {/* Stat cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16, marginBottom: 28 }}>
         {[
-          { label: "Tổng phiên thi",   value: data.totalSessions,     color: MLS_NAVY,   icon: "📋" },
-          { label: "Đã hoàn thành",    value: data.completedSessions,  color: "#059669",  icon: "✅" },
-          { label: "Tỷ lệ hoàn thành", value: `${completionRate}%`,    color: "#D97706",  icon: "📊" },
-          { label: "Điểm trung bình",  value: data.avgOverallScore.toFixed(1), color: "#7C3AED", icon: "⭐" },
-          { label: "Level phổ biến",   value: topLevel,                color: LEVEL_COLORS[topLevel] ?? "#6B7280", icon: "🏆" },
+          { label: ta("stat_total_sessions"),  value: data.totalSessions,     color: MLS_NAVY,   icon: "📋" },
+          { label: ta("stat_completed"),       value: data.completedSessions,  color: "#059669",  icon: "✅" },
+          { label: ta("stat_completion_rate"), value: `${completionRate}%`,    color: "#D97706",  icon: "📊" },
+          { label: t("stat_avg_score_opic"),  value: data.avgOverallScore.toFixed(1), color: "#7C3AED", icon: "⭐" },
+          { label: ta("stat_common_level"),    value: topLevel,                color: LEVEL_COLORS[topLevel] ?? "#6B7280", icon: "🏆" },
         ].map(({ label, value, color, icon }) => (
           <div key={label} style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", boxShadow: "0 2px 10px rgba(0,0,0,0.06)" }}>
             <div style={{ fontSize: 24, marginBottom: 8 }}>{icon}</div>
@@ -100,7 +102,7 @@ export default function OPICAnalyticsPage() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
         {/* Level distribution */}
         <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 18, marginTop: 0 }}>Phân bố cấp độ</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 18, marginTop: 0 }}>{t("opic_level_dist")}</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {LEVELS.map((lvl) => {
               const count = data.levelDistribution[lvl] ?? 0;
@@ -125,7 +127,7 @@ export default function OPICAnalyticsPage() {
 
         {/* Skill breakdown */}
         <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 18, marginTop: 0 }}>Điểm kỹ năng trung bình</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 18, marginTop: 0 }}>{ta("section_skill_avg")}</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {SKILL_KEYS.map(({ key, label, color }) => (
               <div key={key}>
@@ -138,7 +140,7 @@ export default function OPICAnalyticsPage() {
           </div>
           <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #E5E7EB" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>Tổng điểm trung bình</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>{ta("section_overall_avg")}</span>
               <span style={{ fontSize: 20, fontWeight: 800, color: MLS_NAVY }}>{data.avgOverallScore.toFixed(1)}</span>
             </div>
           </div>

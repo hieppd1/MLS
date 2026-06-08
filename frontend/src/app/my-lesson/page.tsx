@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSelector } from "react-redux";
+import { useTranslations } from "next-intl";
 import type { RootState } from "@/lib/store";
 import { safeImgUrl } from "@/lib/utils";
 import {
@@ -11,7 +12,8 @@ import {
 } from "@/lib/features/courses/coursesApi";
 import StreakWidget from "@/components/StreakWidget";
 import { useGetMyPlacementResultQuery } from "@/lib/features/quiz/quizApi";
-import MessagesSidebar from "@/app/_components/MessagesSidebar";
+import AppShell from "@/app/_components/AppShell";
+import { useFormatters } from "@/lib/hooks/useFormatters";
 
 /* ═══════════════════════════════════════════════════════════════
    CONSTANTS
@@ -138,8 +140,14 @@ function ChatItem({ chat, selected, onClick }: { chat: MockChat; selected: boole
 function LessonRow({ course, index, saved, onSave }: {
   course: PublicCourseListItem; index: number; saved: boolean; onSave: () => void;
 }) {
+  const t = useTranslations("my_lesson");
+  const tLevels = useTranslations("level_labels");
   const price = course.price ?? 0;
   const hasDiscount = course.discountPrice != null && course.discountPrice < price;
+  const { fmtCurrency } = useFormatters();
+  const levelLabel = course.level >= 1 && course.level <= 6
+    ? tLevels(String(course.level) as '1')
+    : tLevels("fallback", { n: course.level });
   return (
     <Link href={`/courses/${course.id}`} style={{ textDecoration: "none", display: "block" }}>
       <div
@@ -158,22 +166,22 @@ function LessonRow({ course, index, saved, onSave }: {
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", lineHeight: 1.4, marginBottom: 4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{course.title}</p>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <span style={{ fontSize: 10, background: "#EFF6FF", color: "#1565C0", fontWeight: 700, padding: "1px 8px", borderRadius: 99 }}>{LEVEL_LABELS[course.level] ?? `Cấp ${course.level}`}</span>
-              <span style={{ fontSize: 11, color: "#9CA3AF" }}>{course.moduleCount} chương • {course.sessionCount} bài</span>
+              <span style={{ fontSize: 10, background: "#EFF6FF", color: "#1565C0", fontWeight: 700, padding: "1px 8px", borderRadius: 99 }}>{levelLabel}</span>
+              <span style={{ fontSize: 11, color: "#9CA3AF" }}>{t("meta_chapters_sessions", { modules: course.moduleCount, sessions: course.sessionCount })}</span>
             </div>
           </div>
         </div>
         <div style={{ textAlign: "center" }}>
           {course.isEnrolled
-            ? <span style={{ fontSize: 12, color: "#16A34A", fontWeight: 600 }}>✓ Đang học</span>
+            ? <span style={{ fontSize: 12, color: "#16A34A", fontWeight: 600 }}>{t("status_learning")}</span>
             : price === 0
-              ? <span style={{ fontSize: 12, color: "#16A34A", fontWeight: 600 }}>Miễn phí</span>
+              ? <span style={{ fontSize: 12, color: "#16A34A", fontWeight: 600 }}>{t("status_free")}</span>
               : hasDiscount
                 ? <div>
-                    <span style={{ fontSize: 12, color: "#DC2626", fontWeight: 700, display: "block" }}>{(course.discountPrice!).toLocaleString("vi-VN")}đ</span>
-                    <span style={{ fontSize: 10, color: "#9CA3AF", textDecoration: "line-through" }}>{price.toLocaleString("vi-VN")}đ</span>
+                    <span style={{ fontSize: 12, color: "#DC2626", fontWeight: 700, display: "block" }}>{fmtCurrency(course.discountPrice!)}</span>
+                    <span style={{ fontSize: 10, color: "#9CA3AF", textDecoration: "line-through" }}>{fmtCurrency(price)}</span>
                   </div>
-                : <span style={{ fontSize: 12, color: "#DC2626", fontWeight: 700 }}>{price.toLocaleString("vi-VN")}đ</span>
+                : <span style={{ fontSize: 12, color: "#DC2626", fontWeight: 700 }}>{fmtCurrency(price)}</span>
           }
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
@@ -192,9 +200,12 @@ function LessonRow({ course, index, saved, onSave }: {
    MY LESSON PAGE
 ═══════════════════════════════════════════════════════════════ */
 export default function MyLessonPage() {
+  const t = useTranslations("my_lesson");
+  const tLevels = useTranslations("level_labels");
   const isLoggedIn = useSelector((s: RootState) => !!s.auth?.accessToken);
   const isHydrated = useSelector((s: RootState) => s.auth?.isHydrated ?? false);
   const { data: placementResult } = useGetMyPlacementResultQuery(undefined, { skip: !isHydrated || !isLoggedIn });
+  const { fmtDate } = useFormatters();
 
   // Lesson table state
   const [lessonTab,   setLessonTab]   = useState<"new" | "unread" | "done" | "schedule">("new");
@@ -223,40 +234,13 @@ export default function MyLessonPage() {
         .ml-scroll:hover { scrollbar-color: rgba(0,0,0,0.18) transparent; }
       `}</style>
 
-      <div style={{ display: "flex", height: "calc(100vh - 56px)", overflow: "hidden", background: "#F3F4F6" }}>
+      <AppShell activeNavId="new">
 
         {/* ═══ COL 1: LEFT NAV (72px) ════════════════════════════ */}
-        <aside className="ml-scroll" style={{
-          width: 72, flexShrink: 0,
-          background: "white", borderRight: "1px solid #e5e7eb",
-          display: "flex", flexDirection: "column", alignItems: "center",
-          paddingTop: 8, overflowY: "auto", zIndex: 10,
-        }}>
-          {LEFT_NAV.map((item) => {
-            const locked  = item.requireAuth && !isLoggedIn;
-            const active  = item.id === "new";
-            return (
-              <Link key={item.id} href={locked ? "/login" : item.href}
-                style={{
-                  display: "flex", flexDirection: "column", alignItems: "center",
-                  gap: 4, padding: "10px 4px", width: "100%", textAlign: "center",
-                  textDecoration: "none",
-                  color: active ? "#1565C0" : locked ? "#D1D5DB" : "#6B7280",
-                  background: active ? "#EFF6FF" : "transparent",
-                  borderTop: "none", borderRight: "none", borderBottom: "none",
-                  borderLeft: active ? "3px solid #1565C0" : "3px solid transparent",
-                }}
-                title={item.label}
-              >
-                {item.icon}
-                <span style={{ fontSize: 9, fontWeight: 500, lineHeight: 1.2 }}>{item.label}</span>
-              </Link>
-            );
-          })}
-        </aside>
+
 
         {/* ═══ COL 2: TIN NHẮN — shared MessagesSidebar ══════════ */}
-        <MessagesSidebar />
+
 
         {/* ═══ COL 3: BÀI HỌC MỚI — table (flex-1) ══════════════ */}
         <main className="ml-scroll" style={{ flex: 1, minWidth: 0, background: "#fff", display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -265,7 +249,7 @@ export default function MyLessonPage() {
           <div style={{ borderBottom: "1px solid #E5E7EB", padding: "0 24px", flexShrink: 0 }}>
             <div style={{ display: "flex" }}>
               {(["new", "unread", "done", "schedule"] as const).map((tab) => {
-                const labels = { new: "Bài mới", unread: "Bài chưa học", done: "Bài đã học", schedule: "Lịch phát hành" };
+                const labels = { new: t("tab_new"), unread: t("tab_unread"), done: t("tab_done"), schedule: t("tab_schedule") };
                 return (
                   <button key={tab} onClick={() => setLessonTab(tab)} style={{
                     padding: "14px 20px", fontSize: 13,
@@ -283,8 +267,8 @@ export default function MyLessonPage() {
           {/* Level filter chips */}
           <div style={{ padding: "10px 24px", display: "flex", gap: 8, overflowX: "auto", flexShrink: 0, borderBottom: "1px solid #F3F4F6", scrollbarWidth: "none" }}>
             {[
-              { label: "All",       value: undefined as number | undefined },
-              ...[1,2,3,4,5,6].map(n => ({ label: LEVEL_LABELS[n] ?? `Cấp ${n}`, value: n as number | undefined })),
+              { label: tLevels("all"),       value: undefined as number | undefined },
+              ...[1,2,3,4,5,6].map(n => ({ label: tLevels(String(n) as '1'), value: n as number | undefined })),
             ].map((item) => (
               <button key={item.label} onClick={() => setLessonLevel(item.value)} style={{
                 flexShrink: 0, padding: "5px 18px", borderRadius: 99, fontSize: 12, fontWeight: 500,
@@ -298,10 +282,10 @@ export default function MyLessonPage() {
 
           {/* Table header */}
           <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 130px 52px", padding: "9px 24px", background: "#F9FAFB", borderBottom: "1px solid #E5E7EB", flexShrink: 0 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>Stt</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>Bài học</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>Kết quả</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>Lưu</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>{t("col_no")}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#6B7280" }}>{t("col_lesson")}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>{t("col_result")}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", textAlign: "center" }}>{t("col_save")}</span>
           </div>
 
           {/* Table body */}
@@ -324,7 +308,7 @@ export default function MyLessonPage() {
             ) : filteredLessons.length === 0 ? (
               <div style={{ padding: "80px 0", textAlign: "center" }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>📚</div>
-                <p style={{ color: "#9CA3AF", fontSize: 14 }}>Không có dữ liệu</p>
+                <p style={{ color: "#9CA3AF", fontSize: 14 }}>{t("empty")}</p>
               </div>
             ) : filteredLessons.map((course, i) => (
               <LessonRow
@@ -340,11 +324,11 @@ export default function MyLessonPage() {
           </div>
         </main>
 
-        {/* ═══ COL 4: STREAK + BÀI ĐÃ LƯU (270px) ═══════════════ */}
-        <aside className="ml-scroll" style={{
+        {/* ═══ COL 4: STREAK + BÀI ĐÃ LƯU (270px, hidden on mobile) ═════ */}
+        <aside className="ml-scroll hidden lg:flex" style={{
           width: 270, flexShrink: 0,
           background: "white", borderLeft: "1px solid #e5e7eb",
-          display: "flex", flexDirection: "column", overflowY: "auto", zIndex: 10,
+          flexDirection: "column", overflowY: "auto", zIndex: 10,
         }}>
           {/* Streak widget */}
           <div style={{ padding: "12px 12px 0" }}>
@@ -356,12 +340,12 @@ export default function MyLessonPage() {
             <div style={{ margin: "12px 12px 0", borderRadius: 12, overflow: "hidden", border: "1px solid #DBEAFE" }}>
               {placementResult ? (
                 <div style={{ background: "linear-gradient(135deg,#EFF6FF,#DBEAFE)", padding: "14px 16px" }}>
-                  <div style={{ fontSize: 11, color: "#1D4ED8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Trình độ của bạn</div>
+                  <div style={{ fontSize: 11, color: "#1D4ED8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{t("placement_level_title")}</div>
                   <div style={{ fontSize: 22, fontWeight: 800, color: "#1565C0", marginBottom: 2 }}>
-                    Cấp {placementResult.assignedLevel} — {["","Nhập môn","Cơ bản","Sơ trung","Trung cấp","Trung cao","Nâng cao"][placementResult.assignedLevel] ?? ""}
+                    {t("placement_level", { n: placementResult.assignedLevel, name: placementResult.assignedLevel >= 1 && placementResult.assignedLevel <= 6 ? tLevels(String(placementResult.assignedLevel) as '1') : "" })}
                   </div>
                   <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 10 }}>
-                    {new Date(placementResult.testedAt).toLocaleDateString("vi-VN")}
+                    {fmtDate(placementResult.testedAt)}
                   </div>
                   {Object.entries(placementResult.skillBreakdown).slice(0, 3).map(([k, v]) => (
                     <div key={k} style={{ marginBottom: 5 }}>
@@ -373,17 +357,17 @@ export default function MyLessonPage() {
                       </div>
                     </div>
                   ))}
-                  <Link href="/placement-test" style={{ display: "block", textAlign: "center", marginTop: 10, fontSize: 12, color: "#1565C0", fontWeight: 600, textDecoration: "none" }}>Làm lại bài kiểm tra →</Link>
+                  <Link href="/placement-test" style={{ display: "block", textAlign: "center", marginTop: 10, fontSize: 12, color: "#1565C0", fontWeight: 600, textDecoration: "none" }}>{t("placement_retake")}</Link>
                 </div>
               ) : (
                 <div style={{ background: "#F8FAFC", padding: "14px 16px" }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 6 }}>🎯 Chưa xếp lớp</div>
-                  <p style={{ fontSize: 12, color: "#6B7280", marginBottom: 10, lineHeight: 1.5 }}>Làm bài kiểm tra để nhận lộ trình học phù hợp với trình độ của bạn.</p>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 6 }}>{t("placement_empty_title")}</div>
+                  <p style={{ fontSize: 12, color: "#6B7280", marginBottom: 10, lineHeight: 1.5 }}>{t("placement_empty_desc")}</p>
                   <Link href="/placement-test" style={{
                     display: "block", textAlign: "center", padding: "8px 0",
                     borderRadius: 8, background: "#1565C0", color: "#fff",
                     textDecoration: "none", fontSize: 13, fontWeight: 700,
-                  }}>Kiểm tra ngay</Link>
+                  }}>{t("placement_take")}</Link>
                 </div>
               )}
             </div>
@@ -391,8 +375,8 @@ export default function MyLessonPage() {
 
           <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid #F3F4F6", flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#111827", margin: 0 }}>Bài đã lưu</h3>
-              <button style={{ fontSize: 12, color: "#1565C0", fontWeight: 500, background: "none", border: "none", cursor: "pointer" }}>Xem tất cả</button>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#111827", margin: 0 }}>{t("saved_title")}</h3>
+              <button style={{ fontSize: 12, color: "#1565C0", fontWeight: 500, background: "none", border: "none", cursor: "pointer" }}>{t("view_all")}</button>
             </div>
           </div>
 
@@ -401,8 +385,8 @@ export default function MyLessonPage() {
               <div style={{ padding: "64px 16px", textAlign: "center" }}>
                 <div style={{ fontSize: 36, marginBottom: 12 }}>🔖</div>
                 <p style={{ fontSize: 13, color: "#9CA3AF", lineHeight: 1.6 }}>
-                  Không có dữ liệu<br/>
-                  <span style={{ fontSize: 12 }}>Bấm icon lưu để thêm bài học</span>
+                  {t("empty")}<br/>
+                  <span style={{ fontSize: 12 }}>{t("saved_empty_hint")}</span>
                 </p>
               </div>
             ) : savedCourses.map((course) => (
@@ -420,7 +404,7 @@ export default function MyLessonPage() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 12, fontWeight: 600, color: "#111827", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{course.title}</p>
-                    <p style={{ fontSize: 11, color: "#1565C0", marginTop: 3, fontWeight: 500 }}>{LEVEL_LABELS[course.level] ?? ""}</p>
+                    <p style={{ fontSize: 11, color: "#1565C0", marginTop: 3, fontWeight: 500 }}>{course.level >= 1 && course.level <= 6 ? tLevels(String(course.level) as '1') : ""}</p>
                   </div>
                 </div>
               </Link>
@@ -428,7 +412,7 @@ export default function MyLessonPage() {
           </div>
         </aside>
 
-      </div>
+      </AppShell>
     </>
   );
 }

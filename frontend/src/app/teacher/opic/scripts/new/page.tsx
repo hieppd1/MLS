@@ -3,17 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useCreateScriptMutation } from "@/lib/features/quiz/opicApi";
 
 const MLS_NAVY = "#1565C0";
 
-const COMBO_TYPES = [
-  { value: "describe",         label: "Miêu tả (Describe)" },
-  { value: "routine",          label: "Thói quen (Routine)" },
-  { value: "experience",       label: "Kinh nghiệm (Experience)" },
-  { value: "roleplay",         label: "Nhập vai (Role Play)" },
-  { value: "question-asking",  label: "Đặt câu hỏi (Q.Asking)" },
-];
+const COMBO_TYPE_KEYS = [
+  { value: "describe",         key: "describe" },
+  { value: "routine",          key: "routine" },
+  { value: "experience",       key: "experience" },
+  { value: "roleplay",         key: "roleplay" },
+  { value: "question-asking",  key: "qasking" },
+] as const;
 
 const TARGET_LEVELS = ["", "NH", "IL", "IM1", "IM2", "IM3", "IH", "AL"];
 
@@ -35,6 +36,9 @@ function FormField({ label, hint, children }: { label: string; hint?: string; ch
 }
 
 export default function NewScriptPage() {
+  const t = useTranslations("teacher_opic_scripts_new");
+  const tCombo = useTranslations("opic_combo_labels");
+  const tLang = useTranslations("language_labels");
   const router = useRouter();
   const [createScript, { isLoading }] = useCreateScriptMutation();
 
@@ -56,10 +60,10 @@ export default function NewScriptPage() {
   }
 
   async function handleSubmit() {
-    if (!form.topicCategory.trim()) { setError("Vui lòng nhập chủ đề."); return; }
-    if (!form.openingTemplate.trim()) { setError("Vui lòng nhập script mở đầu."); return; }
-    if (!form.bodyTemplate.trim()) { setError("Vui lòng nhập script thân bài."); return; }
-    if (!form.closingTemplate.trim()) { setError("Vui lòng nhập script kết thúc."); return; }
+    if (!form.topicCategory.trim()) { setError(t("err_topic")); return; }
+    if (!form.openingTemplate.trim()) { setError(t("err_opening")); return; }
+    if (!form.bodyTemplate.trim()) { setError(t("err_body")); return; }
+    if (!form.closingTemplate.trim()) { setError(t("err_closing")); return; }
     setError(null);
     try {
       await createScript({
@@ -75,7 +79,7 @@ export default function NewScriptPage() {
       }).unwrap();
       router.push("/teacher/opic/scripts");
     } catch {
-      setError("Tạo script thất bại. Vui lòng thử lại.");
+      setError(t("toast_fail"));
     }
   }
 
@@ -96,11 +100,11 @@ export default function NewScriptPage() {
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <Link href="/teacher/opic/scripts" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", display: "flex", alignItems: "center", gap: 4, marginBottom: 8, width: "fit-content" }}>
-          ← Quay lại danh sách
+          {t("back")}
         </Link>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: "#111827", margin: 0 }}>Tạo script OPIC mới</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: "#111827", margin: 0 }}>{t("title")}</h1>
         <p style={{ fontSize: 13, color: "#9CA3AF", marginTop: 4 }}>
-          Script mẫu giúp học viên luyện tập câu trả lời theo từng combo
+          {t("subtitle")}
         </p>
       </div>
 
@@ -108,69 +112,69 @@ export default function NewScriptPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           {/* Row 1: Topic + Combo type */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <FormField label="Chủ đề *" hint="ví dụ: home, hobby, work">
+            <FormField label={t("field_topic")} hint={t("topic_hint")}>
               <input
                 value={form.topicCategory}
                 onChange={(e) => set("topicCategory", e.target.value)}
-                placeholder="nhập chủ đề..."
+                placeholder={t("topic_ph")}
                 list="topic-suggestions"
                 style={inputStyle}
               />
               <datalist id="topic-suggestions">
-                {TOPIC_SUGGESTIONS.map((t) => <option key={t} value={t} />)}
+                {TOPIC_SUGGESTIONS.map((tp) => <option key={tp} value={tp} />)}
               </datalist>
             </FormField>
-            <FormField label="Loại combo *">
+            <FormField label={t("field_combo")}>
               <select value={form.comboType} onChange={(e) => set("comboType", e.target.value)} style={inputStyle}>
-                {COMBO_TYPES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                {COMBO_TYPE_KEYS.map((c) => <option key={c.value} value={c.value}>{tCombo(c.key)}</option>)}
               </select>
             </FormField>
           </div>
 
           {/* Row 2: Target level + Language */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <FormField label="Cấp độ mục tiêu" hint="tùy chọn">
+            <FormField label={t("field_level")} hint={t("optional")}>
               <select value={form.targetLevel} onChange={(e) => set("targetLevel", e.target.value)} style={inputStyle}>
-                {TARGET_LEVELS.map((l) => <option key={l} value={l}>{l || "— Tất cả cấp độ —"}</option>)}
+                {TARGET_LEVELS.map((l) => <option key={l} value={l}>{l || t("level_all")}</option>)}
               </select>
             </FormField>
-            <FormField label="Ngôn ngữ *">
+            <FormField label={t("field_language")}>
               <select value={form.language} onChange={(e) => set("language", e.target.value)} style={inputStyle}>
-                <option value="vi">🇻🇳 Tiếng Việt</option>
-                <option value="en">🇺🇸 English</option>
-                <option value="ko">🇰🇷 한국어</option>
+                <option value="vi">{tLang("vi")}</option>
+                <option value="en">{tLang("en")}</option>
+                <option value="ko">{tLang("ko")}</option>
               </select>
             </FormField>
           </div>
 
           {/* Script templates */}
           <div style={{ borderTop: "1px solid #E5E7EB", paddingTop: 20 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 14 }}>Nội dung script</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 14 }}>{t("section_content")}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <FormField label="Mở đầu *" hint="câu giới thiệu, dẫn dắt vào chủ đề">
+              <FormField label={t("field_opening")} hint={t("opening_hint")}>
                 <textarea
                   value={form.openingTemplate}
                   onChange={(e) => set("openingTemplate", e.target.value)}
                   rows={4}
-                  placeholder="Ví dụ: Tôi muốn nói về... / I would like to talk about..."
+                  placeholder={t("opening_ph")}
                   style={textareaStyle}
                 />
               </FormField>
-              <FormField label="Thân bài *" hint="nội dung chính, ý tưởng mở rộng">
+              <FormField label={t("field_body")} hint={t("body_hint")}>
                 <textarea
                   value={form.bodyTemplate}
                   onChange={(e) => set("bodyTemplate", e.target.value)}
                   rows={6}
-                  placeholder="Nội dung chính..."
+                  placeholder={t("body_ph")}
                   style={textareaStyle}
                 />
               </FormField>
-              <FormField label="Kết thúc *" hint="câu tổng kết, kết luận">
+              <FormField label={t("field_closing")} hint={t("closing_hint")}>
                 <textarea
                   value={form.closingTemplate}
                   onChange={(e) => set("closingTemplate", e.target.value)}
                   rows={3}
-                  placeholder="Ví dụ: Tóm lại... / In conclusion..."
+                  placeholder={t("closing_ph")}
                   style={textareaStyle}
                 />
               </FormField>
@@ -179,9 +183,9 @@ export default function NewScriptPage() {
 
           {/* Optional extras */}
           <div style={{ borderTop: "1px solid #E5E7EB", paddingTop: 20 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 14 }}>Tài liệu bổ sung <span style={{ fontWeight: 400, color: "#9CA3AF" }}>(tùy chọn)</span></div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 14 }}>{t("section_extra")} <span style={{ fontWeight: 400, color: "#9CA3AF" }}>{t("optional")}</span></div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <FormField label="Từ vựng gợi ý" hint="mỗi từ một dòng">
+              <FormField label={t("field_vocab")} hint={t("vocab_hint")}>
                 <textarea
                   value={form.vocabList}
                   onChange={(e) => set("vocabList", e.target.value)}
@@ -190,7 +194,7 @@ export default function NewScriptPage() {
                   style={textareaStyle}
                 />
               </FormField>
-              <FormField label="Cụm từ hữu ích" hint="mỗi cụm từ một dòng">
+              <FormField label={t("field_phrases")} hint={t("phrases_hint")}>
                 <textarea
                   value={form.usefulPhrases}
                   onChange={(e) => set("usefulPhrases", e.target.value)}
@@ -212,11 +216,11 @@ export default function NewScriptPage() {
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24 }}>
           <Link href="/teacher/opic/scripts"
             style={{ padding: "11px 24px", borderRadius: 10, border: "1px solid #D1D5DB", background: "#fff", color: "#374151", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>
-            Hủy
+            {t("btn_cancel")}
           </Link>
           <button onClick={handleSubmit} disabled={isLoading}
             style={{ padding: "11px 28px", borderRadius: 10, border: "none", background: MLS_NAVY, color: "#fff", cursor: isLoading ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 14, opacity: isLoading ? 0.7 : 1 }}>
-            {isLoading ? "Đang tạo..." : "Tạo script"}
+            {isLoading ? t("btn_creating") : t("btn_create")}
           </button>
         </div>
       </div>

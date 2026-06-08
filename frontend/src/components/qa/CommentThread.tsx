@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAppSelector } from "../../lib/hooks";
 import {
   useCreateCommentMutation,
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export default function CommentThread({ comment, lessonId, sessionId }: Props) {
+  const t = useTranslations("qa_section");
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyContent, setReplyContent] = useState("");
 
@@ -51,7 +53,7 @@ export default function CommentThread({ comment, lessonId, sessionId }: Props) {
 
   if (comment.isDeleted) {
     return (
-      <li className="text-sm text-gray-400 italic">[Bình luận đã bị xóa]</li>
+      <li className="text-sm text-gray-400 italic">{t("deleted")}</li>
     );
   }
 
@@ -69,7 +71,7 @@ export default function CommentThread({ comment, lessonId, sessionId }: Props) {
             </span>
             {comment.isPinned && (
               <span className="text-xs bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 px-1.5 py-0.5 rounded font-medium">
-                📌 Đã ghim
+                📌 {t("pinned_badge")}
               </span>
             )}
             <span className="text-xs text-gray-400 ml-auto">
@@ -88,7 +90,7 @@ export default function CommentThread({ comment, lessonId, sessionId }: Props) {
                 comment.isUpvotedByMe ? "text-blue-500 font-medium" : ""
               }`}
             >
-              👍 {comment.upvoteCount > 0 ? comment.upvoteCount : "Hữu ích"}
+              👍 {comment.upvoteCount > 0 ? comment.upvoteCount : t("upvote")}
             </button>
 
             {!comment.parentId && (
@@ -96,7 +98,7 @@ export default function CommentThread({ comment, lessonId, sessionId }: Props) {
                 onClick={() => setReplyOpen((v) => !v)}
                 className="hover:text-blue-500 transition-colors"
               >
-                💬 Trả lời
+                💬 {t("reply")}
               </button>
             )}
 
@@ -107,7 +109,7 @@ export default function CommentThread({ comment, lessonId, sessionId }: Props) {
                   comment.isPinned ? "text-yellow-500" : ""
                 }`}
               >
-                📌 {comment.isPinned ? "Bỏ ghim" : "Ghim"}
+                📌 {comment.isPinned ? t("unpin") : t("pin")}
               </button>
             )}
 
@@ -116,7 +118,7 @@ export default function CommentThread({ comment, lessonId, sessionId }: Props) {
                 onClick={() => deleteComment(comment.id)}
                 className="hover:text-red-500 transition-colors ml-auto"
               >
-                🗑️ Xóa
+                🗑️ {t("delete")}
               </button>
             )}
           </div>
@@ -127,7 +129,7 @@ export default function CommentThread({ comment, lessonId, sessionId }: Props) {
               <textarea
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
-                placeholder="Viết câu trả lời…"
+                placeholder={t("reply_placeholder")}
                 rows={2}
                 className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
@@ -140,14 +142,14 @@ export default function CommentThread({ comment, lessonId, sessionId }: Props) {
                   }}
                   className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 rounded-lg border border-gray-200"
                 >
-                  Hủy
+                  {t("reply_cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={isReplying || !replyContent.trim()}
                   className="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors"
                 >
-                  {isReplying ? "Đang gửi…" : "Gửi"}
+                  {isReplying ? t("reply_submitting") : t("reply_submit")}
                 </button>
               </div>
             </form>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   useGetTeacherScriptsQuery,
   type OPICScriptTemplateDto,
@@ -9,28 +10,30 @@ import {
 
 const MLS_NAVY = "#1565C0";
 
-const TOPIC_OPTIONS = [
-  { value: "",     label: "Tất cả chủ đề" },
-  { value: "self-intro", label: "Tự giới thiệu" },
-  { value: "home",       label: "Nhà ở" },
-  { value: "hobby",      label: "Sở thích" },
-  { value: "work",       label: "Công việc" },
-  { value: "travel",     label: "Du lịch" },
-  { value: "food",       label: "Ẩm thực" },
-  { value: "health",     label: "Sức khỏe" },
-  { value: "technology", label: "Công nghệ" },
-];
+const TOPIC_OPTION_KEYS = [
+  { value: "",           key: "all" },
+  { value: "self-intro", key: "intro" },
+  { value: "home",       key: "housing" },
+  { value: "hobby",      key: "hobby" },
+  { value: "work",       key: "work" },
+  { value: "travel",     key: "travel" },
+  { value: "food",       key: "food" },
+  { value: "health",     key: "health" },
+  { value: "technology", key: "technology" },
+] as const;
 
-const LANG_LABELS: Record<string, string> = { vi: "🇻🇳 VI", en: "🇺🇸 EN", ko: "🇰🇷 KO" };
-const COMBO_LABELS: Record<string, string> = {
-  describe:         "Miêu tả",
-  routine:          "Thói quen",
-  experience:       "Kinh nghiệm",
-  roleplay:         "Nhập vai",
-  "question-asking":"Đặt câu hỏi",
+const LANG_LABELS: Record<string, string> = { vi: "🇦🇬 VI", en: "🇺🇸 EN", ko: "🇰🇷 KO" };
+const COMBO_KEY_MAP: Record<string, string> = {
+  describe:          "describe_short",
+  routine:           "routine_short",
+  experience:        "experience_short",
+  roleplay:          "roleplay_short",
+  "question-asking": "qasking_short",
 };
 
 function ScriptCard({ s }: { s: OPICScriptTemplateDto }) {
+  const t = useTranslations("teacher_opic_scripts");
+  const tCombo = useTranslations("opic_combo_labels");
   const [expanded, setExpanded] = useState(false);
   return (
     <div style={{ background: "#fff", borderRadius: 14, padding: 20, boxShadow: "0 2px 10px rgba(0,0,0,0.06)", border: "1px solid #F3F4F6" }}>
@@ -38,7 +41,7 @@ function ScriptCard({ s }: { s: OPICScriptTemplateDto }) {
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
             <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 4, padding: "2px 8px", background: "#EFF6FF", color: MLS_NAVY }}>
-              {COMBO_LABELS[s.comboType] ?? s.comboType}
+              {tCombo(COMBO_KEY_MAP[s.comboType] ?? "describe_short")}
             </span>
             <span style={{ fontSize: 11, borderRadius: 4, padding: "2px 8px", background: "#F3F4F6", color: "#6B7280" }}>
               {s.topicCategory}
@@ -56,11 +59,11 @@ function ScriptCard({ s }: { s: OPICScriptTemplateDto }) {
               background: s.isPublished ? "#DCFCE7" : "#F3F4F6",
               color: s.isPublished ? "#16A34A" : "#9CA3AF",
             }}>
-              {s.isPublished ? "Đã xuất bản" : "Bản nháp"}
+              {s.isPublished ? t("status_published") : t("status_draft")}
             </span>
           </div>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: "#111827", margin: "0 0 4px" }}>
-            {s.topicCategory} — {COMBO_LABELS[s.comboType] ?? s.comboType}
+            {s.topicCategory} — {tCombo(COMBO_KEY_MAP[s.comboType] ?? "describe_short")}
           </h3>
           <p style={{ fontSize: 12, color: "#6B7280", margin: 0, lineHeight: 1.5 }}>
             {s.openingTemplate.slice(0, 100)}{s.openingTemplate.length > 100 ? "..." : ""}
@@ -75,9 +78,9 @@ function ScriptCard({ s }: { s: OPICScriptTemplateDto }) {
       {expanded && (
         <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
           {[
-            { label: "Mở đầu", text: s.openingTemplate },
-            { label: "Thân bài", text: s.bodyTemplate },
-            { label: "Kết thúc", text: s.closingTemplate },
+            { label: t("section_opening"), text: s.openingTemplate },
+            { label: t("section_body"), text: s.bodyTemplate },
+            { label: t("section_closing"), text: s.closingTemplate },
           ].map(({ label, text }) => (
             <div key={label}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#374151", marginBottom: 4 }}>{label}</div>
@@ -93,6 +96,8 @@ function ScriptCard({ s }: { s: OPICScriptTemplateDto }) {
 }
 
 export default function OPICScriptsPage() {
+  const t = useTranslations("teacher_opic_scripts");
+  const tTopic = useTranslations("opic_topic_labels");
   const [topicFilter, setTopicFilter] = useState("");
   const [langFilter, setLangFilter] = useState("");
 
@@ -105,14 +110,14 @@ export default function OPICScriptsPage() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827", margin: 0 }}>Script mẫu OPIC</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827", margin: 0 }}>{t("title")}</h1>
           <p style={{ fontSize: 13, color: "#9CA3AF", marginTop: 4 }}>
             {scripts.length} script template
           </p>
         </div>
         <Link href="/teacher/opic/scripts/new"
           style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: MLS_NAVY, color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
-          + Thêm script
+          {t("add")}
         </Link>
       </div>
 
@@ -120,11 +125,11 @@ export default function OPICScriptsPage() {
       <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
         <select value={topicFilter} onChange={(e) => setTopicFilter(e.target.value)}
           style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 13, background: "#fff" }}>
-          {TOPIC_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          {TOPIC_OPTION_KEYS.map((o) => <option key={o.value} value={o.value}>{tTopic(o.key)}</option>)}
         </select>
         <select value={langFilter} onChange={(e) => setLangFilter(e.target.value)}
           style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 13, background: "#fff" }}>
-          <option value="">Tất cả ngôn ngữ</option>
+          <option value="">{t("all_langs")}</option>
           <option value="vi">🇻🇳 Tiếng Việt</option>
           <option value="en">🇺🇸 English</option>
           <option value="ko">🇰🇷 한국어</option>
@@ -132,7 +137,7 @@ export default function OPICScriptsPage() {
         {(topicFilter || langFilter) && (
           <button onClick={() => { setTopicFilter(""); setLangFilter(""); }}
             style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #E5E7EB", background: "#fff", cursor: "pointer", fontSize: 13, color: "#6B7280" }}>
-            ✕ Xóa lọc
+            {t("clear_filter")}
           </button>
         )}
       </div>
@@ -141,23 +146,23 @@ export default function OPICScriptsPage() {
         <div style={{ textAlign: "center", padding: "60px 0", color: "#9CA3AF" }}>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           <div style={{ width: 36, height: 36, border: "4px solid #E5E7EB", borderTopColor: MLS_NAVY, borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 12px" }} />
-          Đang tải...
+          {t("loading")}
         </div>
       )}
 
       {!isLoading && error && (
         <div style={{ padding: "20px 24px", borderRadius: 12, background: "#FEF2F2", color: "#DC2626", fontSize: 14 }}>
-          Không thể tải script. Vui lòng thử lại.
+          {t("load_error")}
         </div>
       )}
 
       {!isLoading && !error && scripts.length === 0 && (
         <div style={{ textAlign: "center", padding: "60px 0" }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: "#374151", marginBottom: 12 }}>Chưa có script nào</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "#374151", marginBottom: 12 }}>{t("empty")}</div>
           <Link href="/teacher/opic/scripts/new"
             style={{ padding: "10px 24px", borderRadius: 10, background: MLS_NAVY, color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
-            Tạo script đầu tiên
+            {t("empty_cta")}
           </Link>
         </div>
       )}

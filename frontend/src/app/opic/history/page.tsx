@@ -1,29 +1,35 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useGetMyHistoryQuery, OPIC_LEVEL_LABELS, type OPICLevel } from "@/lib/features/quiz/opicApi";
-
-const STATE_LABELS: Record<string, string> = {
-  Orientation: "Chưa bắt đầu",
-  Session1:    "Đang làm (phần 1)",
-  MidAdjust:   "Chờ điều chỉnh",
-  Session2:    "Đang làm (phần 2)",
-  Completed:   "Hoàn thành",
-};
+import { formatDate } from "@/lib/i18nFormat";
 
 export default function OPICHistoryPage() {
+  const t = useTranslations("opic_player");
   const { data: sessions = [], isLoading } = useGetMyHistoryQuery();
+
+  const stateLabel = (state: string) => {
+    switch (state) {
+      case "Orientation": return t("state_orientation");
+      case "Session1":    return t("state_session1");
+      case "MidAdjust":   return t("state_midadjust");
+      case "Session2":    return t("state_session2");
+      case "Completed":   return t("state_completed");
+      default: return state;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-2xl px-4 py-10">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Lịch sử thi OPIC</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("history_title")}</h1>
           <Link
             href="/opic/survey"
             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
-            + Thi mới
+            {t("history_new")}
           </Link>
         </div>
 
@@ -36,12 +42,12 @@ export default function OPICHistoryPage() {
         {!isLoading && sessions.length === 0 && (
           <div className="rounded-xl bg-white p-12 text-center shadow-sm">
             <p className="text-4xl mb-4">🎙️</p>
-            <p className="text-gray-600 mb-6">Bạn chưa thi OPIC lần nào.</p>
+            <p className="text-gray-600 mb-6">{t("history_empty")}</p>
             <Link
               href="/opic/survey"
               className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700"
             >
-              Bắt đầu bài thi đầu tiên
+              {t("history_start_first")}
             </Link>
           </div>
         )}
@@ -59,20 +65,18 @@ export default function OPICHistoryPage() {
                     )}
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium
                       ${s.isCompleted ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
-                      {STATE_LABELS[s.sessionState] ?? s.sessionState}
+                      {stateLabel(s.sessionState)}
                     </span>
                   </div>
                   {s.opicLevelResult && (
                     <p className="text-xs text-gray-500">
                       {OPIC_LEVEL_LABELS[s.opicLevelResult as OPICLevel]}
-                      {s.overallScore != null && ` — ${s.overallScore.toFixed(1)}/100`}
+                      {s.overallScore != null && t("score_format", { score: s.overallScore.toFixed(1) })}
                     </p>
                   )}
                   <p className="mt-1 text-xs text-gray-400">
-                    {new Date(s.startedAt).toLocaleDateString("vi-VN", {
-                      day: "2-digit", month: "2-digit", year: "numeric",
-                    })}
-                    {" · "}Câu đã nộp: {s.questionsDone}/15
+                    {formatDate(s.startedAt)}
+                    {t("questions_done", { done: s.questionsDone, total: 15 })}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -81,14 +85,14 @@ export default function OPICHistoryPage() {
                       href={`/opic/${s.id}/result`}
                       className="rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-200"
                     >
-                      Xem kết quả
+                      {t("view_result")}
                     </Link>
                   ) : (
                     <Link
                       href={`/opic/${s.id}/play`}
                       className="rounded-lg bg-green-100 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-200"
                     >
-                      Tiếp tục
+                      {t("continue_test")}
                     </Link>
                   )}
                 </div>

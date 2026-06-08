@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
+using MLS.API.Resources;
 using MLS.Application.Quiz.Commands;
 using MLS.Application.Quiz.Queries;
 
@@ -9,7 +11,7 @@ namespace MLS.API.Controllers;
 [ApiController]
 [Route("api/v1/attempts")]
 [Authorize]
-public class AttemptsController(IMediator mediator) : ControllerBase
+public class AttemptsController(IMediator mediator, IStringLocalizer<SharedResource> loc) : ControllerBase
 {
     private Guid CurrentUserId =>
         Guid.Parse(User.FindFirst("sub")?.Value
@@ -24,7 +26,7 @@ public class AttemptsController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(cmd with { AttemptId = id }, ct);
         return result.Success
             ? Ok(result)
-            : BadRequest(new { message = "Attempt not found or not in progress." });
+            : BadRequest(new { message = loc["AttemptNotFoundOrNotInProgress"].Value });
     }
 
     // ── Submit ────────────────────────────────────────────────────────────────
@@ -43,7 +45,7 @@ public class AttemptsController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> Abandon(Guid id, CancellationToken ct)
     {
         var ok = await mediator.Send(new AbandonAttemptCommand(id), ct);
-        return ok ? Ok(new { message = "Attempt abandoned." }) : BadRequest();
+        return ok ? Ok(new { message = loc["AttemptAbandoned"].Value }) : BadRequest();
     }
 
     // ── Result ────────────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import AppShell from "../../../_components/AppShell";
 import {
   useGetSessionQuery,
@@ -14,6 +15,7 @@ import { useGetQuizQuery, type QuizQuestionDto, type QuizOptionDto } from "@/lib
 export default function VSTEPReadingPage() {
   const router = useRouter();
   const { sessionId } = useParams<{ sessionId: string }>();
+  const t = useTranslations("vstep_player");
 
   const { data: session } = useGetSessionQuery(sessionId);
   const [startPart, { isLoading: starting }] = useStartPartMutation();
@@ -40,7 +42,7 @@ export default function VSTEPReadingPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlQuizId, session, quizId]);
 
-  if (!session) return <AppShell><div style={{ padding: 40, textAlign: "center", color: "#9CA3AF" }}>Đang tải...</div></AppShell>;
+  if (!session) return <AppShell><div style={{ padding: 40, textAlign: "center", color: "#9CA3AF" }}>{t("loading")}</div></AppShell>;
 
   // Already completed
   if (session.readingScore !== null) {
@@ -48,11 +50,11 @@ export default function VSTEPReadingPage() {
       <AppShell>
         <div style={{ maxWidth: 600, margin: "0 auto", padding: "40px 16px", textAlign: "center" }}>
           <div style={{ fontSize: 48 }}>✅</div>
-          <h2 style={{ fontWeight: 700, fontSize: 22, color: "#111827" }}>Phần Đọc đã hoàn thành</h2>
-          <p style={{ color: "#6B7280", marginTop: 8 }}>Điểm: <strong>{session.readingScore?.toFixed(1)}</strong> / 10</p>
+          <h2 style={{ fontWeight: 700, fontSize: 22, color: "#111827" }}>{t("reading_completed")}</h2>
+          <p style={{ color: "#6B7280", marginTop: 8 }}>{t("score_label")}<strong>{session.readingScore?.toFixed(1)}</strong>{t("score_suffix")}</p>
           <button onClick={() => router.push(`/vstep/${sessionId}`)}
             style={{ marginTop: 20, padding: "10px 28px", borderRadius: 99, background: "#10B981", color: "white", border: "none", fontWeight: 600, cursor: "pointer" }}>
-            Tiếp tục phần Viết →
+            {t("continue_writing")}
           </button>
         </div>
       </AppShell>
@@ -64,7 +66,7 @@ export default function VSTEPReadingPage() {
       await startPart({ sessionId, part: "Reading", quizId: selectedQuizId }).unwrap();
       setQuizId(selectedQuizId);
     } catch {
-      setError("Không thể bắt đầu phần Đọc. Vui lòng thử lại.");
+      setError(t("reading_start_error"));
     }
   };
 
@@ -80,7 +82,7 @@ export default function VSTEPReadingPage() {
       setScore(computed);
       setSubmitted(true);
     } catch {
-      setError("Không thể nộp bài. Vui lòng thử lại.");
+      setError(t("submit_error"));
     }
   };
 
@@ -88,10 +90,10 @@ export default function VSTEPReadingPage() {
     return (
       <AppShell>
         <div style={{ maxWidth: 600, margin: "0 auto", padding: "40px 16px" }}>
-          <button onClick={() => router.push(`/vstep/${sessionId}`)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280", fontSize: 14, marginBottom: 16 }}>← Quay lại</button>
-          <h2 style={{ fontWeight: 700, fontSize: 22, color: "#111827" }}>📖 Phần 2: Đọc hiểu</h2>
-          <p style={{ color: "#6B7280", marginTop: 6, marginBottom: 24 }}>40 câu MCQ · 60 phút · Đọc bài và trả lời câu hỏi</p>
-          <QuizIdInput onConfirm={handleStart} loading={starting} label="Quiz ID cho phần Đọc..." />
+          <button onClick={() => router.push(`/vstep/${sessionId}`)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280", fontSize: 14, marginBottom: 16 }}>{t("back")}</button>
+          <h2 style={{ fontWeight: 700, fontSize: 22, color: "#111827" }}>{t("reading_h2")}</h2>
+          <p style={{ color: "#6B7280", marginTop: 6, marginBottom: 24 }}>{t("reading_info")}</p>
+          <QuizIdInput onConfirm={handleStart} loading={starting} label={t("quiz_id_reading_ph")} loadingLabel={t("quiz_id_loading")} startLabel={t("quiz_id_start")} />
           {error && <p style={{ color: "#EF4444", marginTop: 12, fontSize: 13 }}>{error}</p>}
         </div>
       </AppShell>
@@ -103,11 +105,11 @@ export default function VSTEPReadingPage() {
       <AppShell>
         <div style={{ maxWidth: 600, margin: "0 auto", padding: "40px 16px", textAlign: "center" }}>
           <div style={{ fontSize: 48 }}>🎉</div>
-          <h2 style={{ fontWeight: 700, fontSize: 22, color: "#111827" }}>Nộp bài thành công!</h2>
-          <p style={{ color: "#10B981", fontSize: 28, fontWeight: 700, marginTop: 8 }}>{score.toFixed(1)} / 10</p>
+          <h2 style={{ fontWeight: 700, fontSize: 22, color: "#111827" }}>{t("submit_success")}</h2>
+          <p style={{ color: "#10B981", fontSize: 28, fontWeight: 700, marginTop: 8 }}>{score.toFixed(1)}{t("score_suffix")}</p>
           <button onClick={() => router.push(`/vstep/${sessionId}`)}
             style={{ marginTop: 24, padding: "10px 28px", borderRadius: 99, background: "#10B981", color: "white", border: "none", fontWeight: 600, cursor: "pointer" }}>
-            Tiếp tục phần Viết →
+            {t("continue_writing")}
           </button>
         </div>
       </AppShell>
@@ -131,8 +133,8 @@ export default function VSTEPReadingPage() {
           flexShrink: 0,
         }}>
           <div>
-            <span style={{ fontWeight: 700, fontSize: 16, color: "#111827" }}>📖 Phần Đọc</span>
-            <span style={{ color: "#6B7280", fontSize: 13, marginLeft: 10 }}>{totalAnswered}/{questions.length} câu</span>
+            <span style={{ fontWeight: 700, fontSize: 16, color: "#111827" }}>{t("reading_header")}</span>
+            <span style={{ color: "#6B7280", fontSize: 13, marginLeft: 10 }}>{t("reading_answered", { answered: totalAnswered, total: questions.length })}</span>
           </div>
           {/* Passage tabs */}
           <div style={{ display: "flex", gap: 6 }}>
@@ -147,7 +149,7 @@ export default function VSTEPReadingPage() {
                   fontWeight: 600, fontSize: 13, cursor: "pointer",
                 }}
               >
-                Bài {i + 1}
+                {t("passage_tab", { n: i + 1 })}
               </button>
             ))}
           </div>
@@ -160,7 +162,7 @@ export default function VSTEPReadingPage() {
               color: "white", fontWeight: 600, fontSize: 13, cursor: submitting ? "not-allowed" : "pointer",
             }}
           >
-            {submitting ? "Đang nộp..." : "Nộp bài"}
+            {submitting ? t("submitting") : t("submit")}
           </button>
         </div>
 
@@ -176,7 +178,7 @@ export default function VSTEPReadingPage() {
                 {currentPassage.passageText}
               </div>
             ) : (
-              <p style={{ color: "#9CA3AF" }}>Không có bài đọc cho đoạn này.</p>
+              <p style={{ color: "#9CA3AF" }}>{t("passage_no_text")}</p>
             )}
           </div>
 
@@ -219,7 +221,7 @@ export default function VSTEPReadingPage() {
   );
 }
 
-function QuizIdInput({ onConfirm, loading, label }: { onConfirm: (id: string) => void; loading: boolean; label: string }) {
+function QuizIdInput({ onConfirm, loading, label, loadingLabel, startLabel }: { onConfirm: (id: string) => void; loading: boolean; label: string; loadingLabel: string; startLabel: string }) {
   const [val, setVal] = useState("");
   return (
     <div style={{ display: "flex", gap: 10 }}>
@@ -227,7 +229,7 @@ function QuizIdInput({ onConfirm, loading, label }: { onConfirm: (id: string) =>
         style={{ flex: 1, padding: "10px 14px", borderRadius: 8, border: "2px solid #E5E7EB", fontSize: 14 }} />
       <button onClick={() => onConfirm(val.trim())} disabled={loading || !val.trim()}
         style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: loading || !val.trim() ? "#D1D5DB" : "#10B981", color: "white", fontWeight: 600, cursor: loading || !val.trim() ? "not-allowed" : "pointer" }}>
-        {loading ? "..." : "Bắt đầu"}
+        {loading ? loadingLabel : startLabel}
       </button>
     </div>
   );

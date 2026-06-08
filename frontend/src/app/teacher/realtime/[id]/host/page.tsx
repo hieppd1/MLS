@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import * as signalR from "@microsoft/signalr";
 import {
   useStartRoomMutation,
@@ -39,6 +40,7 @@ function getToken(): string | null {
 }
 
 export default function TeacherHostPage() {
+  const t = useTranslations("teacher_realtime");
   const { id } = useParams<{ id: string }>();
   const connectionRef = useRef<signalR.HubConnection | null>(null);
 
@@ -139,16 +141,16 @@ export default function TeacherHostPage() {
       {/* Header */}
       <div className="bg-gray-900 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">Host Dashboard</h1>
-          <p className="text-gray-400 text-sm">Phòng: <span className="text-indigo-400 font-mono font-bold text-lg">{roomCode}</span></p>
+          <h1 className="text-xl font-bold">{t("host_title")}</h1>
+          <p className="text-gray-400 text-sm">{t("host_room")} <span className="text-indigo-400 font-mono font-bold text-lg">{roomCode}</span></p>
         </div>
         <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
           roomState === "Waiting" ? "bg-yellow-900/50 text-yellow-300" :
           roomState === "Active"  ? "bg-green-900/50 text-green-300" :
                                     "bg-gray-700 text-gray-400"
         }`}>
-          {roomState === "Waiting" ? "⏳ Chờ bắt đầu" :
-           roomState === "Active"  ? "🟢 Đang chạy" : "✅ Kết thúc"}
+          {roomState === "Waiting" ? t("host_status_waiting") :
+           roomState === "Active"  ? t("host_status_active") : t("host_status_ended")}
         </div>
       </div>
 
@@ -157,12 +159,12 @@ export default function TeacherHostPage() {
         <div className="w-64 bg-gray-900 border-r border-gray-700 flex flex-col">
           <div className="px-4 py-3 border-b border-gray-700">
             <h2 className="font-semibold text-gray-300">
-              Học sinh ({participants.length})
+              {t("host_students", { n: participants.length })}
             </h2>
           </div>
           <div className="flex-1 overflow-y-auto p-2">
             {participants.length === 0 ? (
-              <p className="text-gray-500 text-sm text-center mt-8">Chờ học sinh tham gia...</p>
+              <p className="text-gray-500 text-sm text-center mt-8">{t("host_waiting_students")}</p>
             ) : (
               participants.map((p) => (
                 <div key={p.userId} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-800">
@@ -179,14 +181,14 @@ export default function TeacherHostPage() {
           {roomState === "Waiting" && (
             <div className="text-center">
               <div className="text-7xl mb-6">🎮</div>
-              <h2 className="text-3xl font-bold mb-2">Sẵn sàng bắt đầu?</h2>
+              <h2 className="text-3xl font-bold mb-2">{t("host_ready_heading")}</h2>
               <p className="text-gray-400 mb-8">
                 {participants.length > 0
-                  ? `${participants.length} học sinh đã tham gia.`
-                  : "Chia sẻ mã phòng để học sinh tham gia."}
+                  ? t("host_ready_subtitle", { n: participants.length })
+                  : t("host_share_hint")}
               </p>
               <div className="bg-indigo-900/50 border-2 border-indigo-500 rounded-2xl px-12 py-6 mb-8 inline-block">
-                <p className="text-indigo-300 text-sm mb-1">Mã tham gia</p>
+                <p className="text-indigo-300 text-sm mb-1">{t("host_room_code")}</p>
                 <p className="text-5xl font-mono font-bold tracking-widest text-white">{roomCode}</p>
               </div>
               <br />
@@ -195,7 +197,7 @@ export default function TeacherHostPage() {
                 disabled={isStarting}
                 className="bg-green-600 hover:bg-green-500 text-white font-bold text-xl px-10 py-4 rounded-xl transition disabled:opacity-50"
               >
-                {isStarting ? "Đang khởi động..." : "🚀 Bắt đầu Quiz"}
+                {isStarting ? t("host_starting") : t("host_start")}
               </button>
             </div>
           )}
@@ -203,7 +205,7 @@ export default function TeacherHostPage() {
           {roomState === "Active" && currentQuestion && (
             <div className="w-full max-w-2xl">
               <div className="flex justify-between items-center mb-4">
-                <span className="text-indigo-300 font-bold">Câu {currentQuestion.questionIndex + 1}</span>
+                <span className="text-indigo-300 font-bold">{t("host_question", { n: currentQuestion.questionIndex + 1 })}</span>
                 <span className={`text-3xl font-bold ${timeLeft <= 5 ? "text-red-400" : "text-green-400"}`}>
                   {timeLeft}s
                 </span>
@@ -227,7 +229,7 @@ export default function TeacherHostPage() {
                   disabled={isAdvancing}
                   className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-lg px-8 py-3 rounded-xl transition"
                 >
-                  {isAdvancing ? "..." : "Câu tiếp theo →"}
+                  {isAdvancing ? "..." : t("host_next")}
                 </button>
               </div>
             </div>
@@ -235,14 +237,14 @@ export default function TeacherHostPage() {
 
           {roomState === "Active" && !currentQuestion && (
             <div className="text-center">
-              <p className="text-gray-400 text-xl">Đang chờ kết quả câu trả lời...</p>
+              <p className="text-gray-400 text-xl">{t("host_waiting_answers")}</p>
             </div>
           )}
 
           {roomState === "Ended" && (
             <div className="text-center">
               <div className="text-6xl mb-4">🏆</div>
-              <h2 className="text-3xl font-bold">Quiz kết thúc!</h2>
+              <h2 className="text-3xl font-bold">{t("host_ended")}</h2>
             </div>
           )}
         </div>
@@ -250,11 +252,11 @@ export default function TeacherHostPage() {
         {/* Right: Leaderboard */}
         <div className="w-72 bg-gray-900 border-l border-gray-700 flex flex-col">
           <div className="px-4 py-3 border-b border-gray-700">
-            <h2 className="font-semibold text-gray-300">🏆 Bảng xếp hạng</h2>
+            <h2 className="font-semibold text-gray-300">{t("host_leaderboard")}</h2>
           </div>
           <div className="flex-1 overflow-y-auto p-4">
             {leaderboard.length === 0 ? (
-              <p className="text-gray-500 text-sm text-center mt-8">Chưa có điểm nào</p>
+              <p className="text-gray-500 text-sm text-center mt-8">{t("host_no_scores")}</p>
             ) : (
               leaderboard.map((e, i) => (
                 <div key={e.userId} className="flex items-center gap-3 mb-3">

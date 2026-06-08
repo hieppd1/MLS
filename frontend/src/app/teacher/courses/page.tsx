@@ -15,25 +15,13 @@ import {
   useGetMyCoursesQuery,
   type MyTeacherCourseItem,
 } from "@/lib/features/teacher/teacherApi";
+import { useFormatters } from "@/lib/hooks/useFormatters";
+import { useTranslations } from "next-intl";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
 
-const STATUS_LABELS: Record<string, { label: string; className: string }> = {
-  Draft:         { label: "Nháp",          className: "bg-gray-100 text-gray-600" },
-  PendingReview: { label: "Chờ duyệt",     className: "bg-yellow-100 text-yellow-700" },
-  Published:     { label: "Đã xuất bản",   className: "bg-green-100 text-green-700" },
-  Hidden:        { label: "Đã ẩn",         className: "bg-orange-100 text-orange-600" },
-  Archived:      { label: "Lưu trữ",       className: "bg-red-100 text-red-600" },
-};
 
-const LEVELS = [
-  { value: 1, label: "Cấp 1" },
-  { value: 2, label: "Cấp 2" },
-  { value: 3, label: "Cấp 3" },
-  { value: 4, label: "Cấp 4" },
-  { value: 5, label: "Cấp 5" },
-  { value: 6, label: "Cấp 6" },
-];
+const LEVEL_VALUES = [1, 2, 3, 4, 5, 6] as const;
 
 type Modal = "none" | "create" | "delete";
 
@@ -53,6 +41,7 @@ export default function TeacherCoursesPage() {
   const [deleteTarget, setDeleteTarget] = useState<MyTeacherCourseItem | null>(null);
   const [msg, setMsg]                 = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [form, setForm]               = useState(INIT_FORM);
+  const { fmtCurrency } = useFormatters();
 
   const token      = useSelector((s: RootState) => s.auth.accessToken);
   const tenantSlug = useSelector((s: RootState) => s.auth.tenantSlug);
@@ -66,6 +55,18 @@ export default function TeacherCoursesPage() {
   const [deleteCourse, { isLoading: deleting }] = useDeleteCourseMutation();
   const [publishCourse]                         = usePublishCourseMutation();
   const [cloneCourse]                           = useCloneCourseMutation();
+
+  const t = useTranslations("teacher_portal");
+  const tLevels = useTranslations("level_labels");
+  const tLang = useTranslations("language_labels");
+  const tCommon = useTranslations("common");
+  const STATUS_LABELS: Record<string, { label: string; className: string }> = {
+    Draft:         { label: t("status_draft"),     className: "bg-gray-100 text-gray-600" },
+    PendingReview: { label: t("status_pending"),   className: "bg-yellow-100 text-yellow-700" },
+    Published:     { label: t("status_published"), className: "bg-green-100 text-green-700" },
+    Hidden:        { label: t("status_hidden"),    className: "bg-orange-100 text-orange-600" },
+    Archived:      { label: t("status_archived"),  className: "bg-red-100 text-red-600" },
+  };
 
   const courses = allCourses.filter((c) => {
     if (search && !c.title.toLowerCase().includes(search.toLowerCase())) return false;
@@ -125,9 +126,9 @@ export default function TeacherCoursesPage() {
       setForm(INIT_FORM);
       setThumbPreview("");
       refetch();
-      showMsg("success", "Tạo khóa học thành công");
+      showMsg("success", t("toast_create_success"));
     } catch {
-      showMsg("error", "Tạo khóa học thất bại");
+      showMsg("error", t("toast_create_error"));
     }
   };
 
@@ -135,9 +136,9 @@ export default function TeacherCoursesPage() {
     try {
       await cloneCourse(id).unwrap();
       refetch();
-      showMsg("success", "Đã nhân bản khóa học");
+      showMsg("success", t("toast_clone_success"));
     } catch {
-      showMsg("error", "Nhân bản thất bại");
+      showMsg("error", t("toast_clone_error"));
     }
   };
 
@@ -148,9 +149,9 @@ export default function TeacherCoursesPage() {
       setModal("none");
       setDeleteTarget(null);
       refetch();
-      showMsg("success", "Đã xóa khóa học");
+      showMsg("success", t("toast_delete_success"));
     } catch {
-      showMsg("error", "Xóa thất bại");
+      showMsg("error", t("toast_delete_error"));
     }
   };
 
@@ -158,9 +159,9 @@ export default function TeacherCoursesPage() {
     try {
       await publishCourse({ id, approve }).unwrap();
       refetch();
-      showMsg("success", approve ? "Đã xuất bản khóa học" : "Đã ẩn khóa học");
+      showMsg("success", approve ? t("toast_publish_success") : t("toast_hide_success"));
     } catch {
-      showMsg("error", "Thao tác thất bại");
+      showMsg("error", t("toast_action_error"));
     }
   };
 
@@ -169,14 +170,14 @@ export default function TeacherCoursesPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Khóa học của tôi</h1>
-          <p className="mt-1 text-sm text-gray-500">{allCourses.length} khóa học</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t("courses_title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("courses_count", { count: allCourses.length })}</p>
         </div>
         <button
           onClick={() => setModal("create")}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          + Tạo khóa học
+          {t("create_course")}
         </button>
       </div>
 
@@ -194,7 +195,7 @@ export default function TeacherCoursesPage() {
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Tìm kiếm khóa học..."
+            placeholder={t("search_courses")}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button type="submit" className="rounded-lg bg-gray-100 px-3 py-2 text-sm hover:bg-gray-200">Tìm</button>
@@ -205,8 +206,8 @@ export default function TeacherCoursesPage() {
           onChange={(e) => setLevelFilter(e.target.value ? Number(e.target.value) : undefined)}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
         >
-          <option value="">Tất cả cấp độ</option>
-          {LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+          <option value="">{t("all_levels")}</option>
+          {LEVEL_VALUES.map((v) => <option key={v} value={v}>{tLevels(String(v))}</option>)}
         </select>
 
         <select
@@ -214,11 +215,11 @@ export default function TeacherCoursesPage() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
         >
-          <option value="">Tất cả trạng thái</option>
-          <option value="Draft">Nháp</option>
-          <option value="PendingReview">Chờ duyệt</option>
-          <option value="Published">Đã xuất bản</option>
-          <option value="Archived">Lưu trữ</option>
+          <option value="">{t("all_statuses")}</option>
+          <option value="Draft">{t("status_draft")}</option>
+          <option value="PendingReview">{t("status_pending")}</option>
+          <option value="Published">{t("status_published")}</option>
+          <option value="Archived">{t("status_archived")}</option>
         </select>
       </div>
 
@@ -227,7 +228,7 @@ export default function TeacherCoursesPage() {
         <div className="py-16 text-center text-gray-400">Đang tải...</div>
       ) : courses.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 py-16 text-center text-gray-400">
-          {search || levelFilter || statusFilter ? "Không tìm thấy khóa học phù hợp" : "Bạn chưa có khóa học nào"}
+          {search || levelFilter || statusFilter ? t("no_courses_match") : t("no_courses")}
         </div>
       ) : (
         <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
@@ -256,10 +257,10 @@ export default function TeacherCoursesPage() {
                     </Link>
                     <div className="mt-1 flex flex-wrap gap-1">
                       <span className="rounded px-1.5 py-0.5 text-xs font-medium" style={{ background: "#f3e8ff", color: "#7c3aed" }}>
-                        Cấp {course.level}
+                        {tLevels(String(course.level))}
                       </span>
                       {course.isFree && (
-                        <span className="rounded px-1.5 py-0.5 text-xs font-medium" style={{ background: "#dcfce7", color: "#16a34a" }}>Miễn phí</span>
+                        <span className="rounded px-1.5 py-0.5 text-xs font-medium" style={{ background: "#dcfce7", color: "#16a34a" }}>{t("field_free")}</span>
                       )}
                     </div>
                   </div>
@@ -283,26 +284,26 @@ export default function TeacherCoursesPage() {
                     <span className="font-semibold text-gray-800">{course.moduleCount}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-amber-500">Học viên</span>
+                    <span className="text-amber-500">{t("col_students")}</span>
                     <span className="font-semibold text-gray-800">{course.enrollmentCount}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Giá</span>
+                    <span className="text-gray-400">{t("col_price")}</span>
                     <span>
                       {course.isFree || course.price === 0 ? (
                         <span className="rounded border border-gray-300 px-2 py-0.5 text-xs font-medium text-gray-600">FREE</span>
                       ) : course.discountPrice != null ? (
                         <span className="flex items-center gap-1">
-                          <span className="font-semibold text-red-600">{course.discountPrice.toLocaleString("vi-VN")}đ</span>
-                          <span className="text-xs text-gray-400 line-through">{course.price.toLocaleString("vi-VN")}đ</span>
+                          <span className="font-semibold text-red-600">{fmtCurrency(course.discountPrice)}</span>
+                          <span className="text-xs text-gray-400 line-through">{fmtCurrency(course.price)}</span>
                         </span>
                       ) : (
-                        <span className="font-semibold text-red-600">{course.price.toLocaleString("vi-VN")}đ</span>
+                        <span className="font-semibold text-red-600">{fmtCurrency(course.price)}</span>
                       )}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Trạng thái</span>
+                    <span className="text-gray-400">{t("col_status")}</span>
                     {isActive
                       ? <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-green-100 text-green-700">Active</span>
                       : <span className={`rounded-full px-3 py-0.5 text-xs font-semibold ${s.className}`}>{s.label}</span>
@@ -318,7 +319,7 @@ export default function TeacherCoursesPage() {
                       className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gray-100 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                      Xuất bản
+                      {t("btn_publish")}
                     </button>
                   ) : course.status === "Published" ? (
                     <button
@@ -326,7 +327,7 @@ export default function TeacherCoursesPage() {
                       className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gray-100 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                      Ẩn khóa học
+                      {t("btn_hide")}
                     </button>
                   ) : (
                     <button
@@ -334,14 +335,14 @@ export default function TeacherCoursesPage() {
                       className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gray-100 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                      Clone
+                      {t("btn_clone")}
                     </button>
                   )}
 
                   <Link
                     href={`/teacher/courses/${course.id}`}
                     className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
-                    title="Cài đặt"
+                    title={t("btn_settings")}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                   </Link>
@@ -349,7 +350,7 @@ export default function TeacherCoursesPage() {
                   <button
                     onClick={() => { setDeleteTarget(course); setModal("delete"); }}
                     className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-500"
-                    title="Xóa"
+                    title={t("btn_delete")}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                   </button>
@@ -365,7 +366,7 @@ export default function TeacherCoursesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="flex w-full max-w-3xl flex-col rounded-xl bg-white shadow-xl" style={{ maxHeight: "90vh" }}>
             <div className="flex items-center justify-between border-b border-gray-100 px-6 pt-5 pb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Tạo khóa học mới</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t("modal_create_title")}</h2>
               <button type="button" onClick={() => setModal("none")} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </button>
@@ -373,67 +374,67 @@ export default function TeacherCoursesPage() {
             <div className="overflow-y-auto px-6 py-4">
               <form id="create-course-form" onSubmit={handleCreate} className="space-y-5">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Tên khóa học *</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">{t("field_title")}</label>
                   <input
                     required value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nhập tên khóa học"
+                    placeholder={t("field_title_ph")}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Mô tả ngắn</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">{t("field_short_desc")}</label>
                   <textarea
                     value={form.shortDescription}
                     onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
                     rows={2}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Mô tả ngắn hiển thị trên danh sách"
+                    placeholder={t("field_short_desc_ph")}
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Mô tả chi tiết</label>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">{t("field_description")}</label>
                   <RichTextEditor
                     value={form.description}
                     onChange={(val) => setForm({ ...form, description: val })}
-                    placeholder="Nhập mô tả khóa học..."
+                    placeholder={t("field_description_ph")}
                     height={220}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Cấp độ *</label>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">{t("field_level")}</label>
                     <select
                       value={form.level}
                       onChange={(e) => setForm({ ...form, level: Number(e.target.value) })}
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      {LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+                      {LEVEL_VALUES.map((v) => <option key={v} value={v}>{tLevels(String(v))}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Ngôn ngữ</label>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">{t("field_language")}</label>
                     <select
                       value={form.language}
                       onChange={(e) => setForm({ ...form, language: e.target.value })}
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                     >
-                      <option value="VI">Tiếng Việt</option>
-                      <option value="EN">English</option>
+                      <option value="VI">{tLang("vi_short")}</option>
+                      <option value="EN">{tLang("en_short")}</option>
                     </select>
                   </div>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Mã khóa học</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">{t("field_code")}</label>
                   <input
                     value={form.code}
                     onChange={(e) => setForm({ ...form, code: e.target.value })}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="VD: VN-BASIC-01"
+                    placeholder={t("field_code_ph")}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Thumbnail</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">{t("field_thumbnail")}</label>
                   <input
                     ref={thumbInputRef} type="file" accept="image/*" className="hidden"
                     onChange={(e) => {
@@ -444,7 +445,7 @@ export default function TeacherCoursesPage() {
                       uploadThumb(file).then((url) => {
                         setThumbUploading(false);
                         if (url) setForm((f) => ({ ...f, thumbnailUrl: url }));
-                        else { setThumbPreview(""); showMsg("error", "Upload ảnh thất bại"); }
+                        else { setThumbPreview(""); showMsg("error", t("toast_upload_fail")); }
                       });
                     }}
                   />
@@ -458,72 +459,72 @@ export default function TeacherCoursesPage() {
                     ) : (
                       <div className="flex h-full flex-col items-center justify-center gap-1 text-gray-400">
                         <span className="text-2xl">🖼️</span>
-                        <span className="text-xs">Nhấp để tải ảnh</span>
+                        <span className="text-xs">{t("upload_click")}</span>
                       </div>
                     )}
                   </div>
-                  {thumbUploading && <p className="mt-1 text-xs text-blue-500">Đang upload...</p>}
+                  {thumbUploading && <p className="mt-1 text-xs text-blue-500">{t("upload_uploading")}</p>}
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Tags</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">{t("field_tags")}</label>
                   <input
                     value={form.tags}
                     onChange={(e) => setForm({ ...form, tags: e.target.value })}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="IELTS, English, Beginner"
+                    placeholder={t("field_tags_ph")}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Giá (VNĐ)</label>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">{t("field_price")}</label>
                     <input
                       type="number" min={0} step={1000} value={form.price}
                       onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="0 = miễn phí"
+                      placeholder={t("field_price_ph")}
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Giá khuyến mãi</label>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">{t("field_discount_price")}</label>
                     <input
                       type="number" min={0} step={1000} value={form.discountPrice}
                       onChange={(e) => setForm({ ...form, discountPrice: e.target.value })}
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                      placeholder="Để trống nếu không có"
+                      placeholder={t("field_discount_ph")}
                     />
                   </div>
                 </div>
                 <div className="flex items-center gap-6">
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={form.isFree} onChange={(e) => setForm({ ...form, isFree: e.target.checked })} />
-                    Miễn phí
+                    {t("field_free")}
                   </label>
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={form.certificateEnabled} onChange={(e) => setForm({ ...form, certificateEnabled: e.target.checked })} />
-                    Cấp chứng chỉ
+                    {t("field_certificate")}
                   </label>
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={form.completionRequired} onChange={(e) => setForm({ ...form, completionRequired: e.target.checked })} />
-                    Bắt buộc hoàn thành
+                    {t("field_required_complete")}
                   </label>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Hiển thị</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">{t("field_visible")}</label>
                   <select
                     value={form.visibility}
                     onChange={(e) => setForm({ ...form, visibility: e.target.value })}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                   >
-                    <option value="Public">Công khai</option>
-                    <option value="Private">Riêng tư</option>
+                    <option value="Public">{t("field_public")}</option>
+                    <option value="Private">{t("field_private")}</option>
                   </select>
                 </div>
                 <div className="flex justify-end gap-3 pt-2">
                   <button type="button" onClick={() => setModal("none")} className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">
-                    Hủy
+                    {tCommon("cancel")}
                   </button>
                   <button type="submit" disabled={creating} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">
-                    {creating ? "Đang tạo..." : "Tạo khóa học"}
+                    {creating ? t("btn_creating") : t("btn_create")}
                   </button>
                 </div>
               </form>
@@ -536,16 +537,16 @@ export default function TeacherCoursesPage() {
       {modal === "delete" && deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
-            <h2 className="mb-2 text-lg font-semibold">Xóa khóa học</h2>
+            <h2 className="mb-2 text-lg font-semibold">{t("modal_delete_course_title")}</h2>
             <p className="mb-4 text-sm text-gray-600">
-              Bạn có chắc muốn xóa <strong>{deleteTarget.title}</strong>? Toàn bộ modules và bài học sẽ bị xóa.
+              {t("modal_delete_course_confirm", { title: deleteTarget.title })}
             </p>
             <div className="flex justify-end gap-3">
               <button onClick={() => { setModal("none"); setDeleteTarget(null); }} className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">
-                Hủy
+                {tCommon("cancel")}
               </button>
               <button onClick={handleDelete} disabled={deleting} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60">
-                {deleting ? "Đang xóa..." : "Xóa"}
+                {deleting ? t("btn_deleting") : t("btn_delete")}
               </button>
             </div>
           </div>

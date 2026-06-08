@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import AppShell from "../../../_components/AppShell";
 import {
   useGetSessionQuery,
@@ -9,19 +10,18 @@ import {
   useSubmitPartMutation,
 } from "@/lib/features/quiz/vstepApi";
 
-const PARTS = [
-  { id: "P1", label: "Phần 1: Tự giới thiệu", duration: 120, icon: "👋", hint: "Giới thiệu bản thân (tên, quê quán, nghề nghiệp, sở thích)." },
-  { id: "P2", label: "Phần 2: Mô tả ảnh", duration: 180, icon: "🖼", hint: "Mô tả hình ảnh được cung cấp trong tài liệu thi." },
-  { id: "P3", label: "Phần 3: Thảo luận", duration: 300, icon: "💬", hint: "Thảo luận về chủ đề theo hướng dẫn trong tài liệu thi." },
-];
+const PART_META = [
+  { id: "P1", duration: 120, icon: "👋", labelKey: "sp_p1_label", hintKey: "sp_p1_hint" },
+  { id: "P2", duration: 180, icon: "🖼", labelKey: "sp_p2_label", hintKey: "sp_p2_hint" },
+  { id: "P3", duration: 300, icon: "💬", labelKey: "sp_p3_label", hintKey: "sp_p3_hint" },
+] as const;
 
 type RecordingState = "idle" | "recording" | "done";
 
 export default function VSTEPSpeakingPage() {
   const router = useRouter();
   const { sessionId } = useParams<{ sessionId: string }>();
-
-  const { data: session } = useGetSessionQuery(sessionId);
+  const t = useTranslations("vstep_player");
   const [startPart, { isLoading: starting }] = useStartPartMutation();
   const [submitPart, { isLoading: submitting }] = useSubmitPartMutation();
 
@@ -46,19 +46,19 @@ export default function VSTEPSpeakingPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlQuizId, session, quizId]);
 
-  if (!session) return <AppShell><div style={{ padding: 40, textAlign: "center", color: "#9CA3AF" }}>Đang tải...</div></AppShell>;
+  if (!session) return <AppShell><div style={{ padding: 40, textAlign: "center", color: "#9CA3AF" }}>{t("loading")}</div></AppShell>;
 
   if (session.speakingScore !== null) {
     return (
       <AppShell>
         <div style={{ maxWidth: 600, margin: "0 auto", padding: "40px 16px", textAlign: "center" }}>
           <div style={{ fontSize: 48 }}>✅</div>
-          <h2 style={{ fontWeight: 700, fontSize: 22, color: "#111827" }}>Phần Nói đã hoàn thành</h2>
-          <p style={{ color: "#6B7280", marginTop: 8 }}>Điểm: <strong>{session.speakingScore?.toFixed(1)}</strong> / 10</p>
-          <p style={{ color: "#EF4444", fontSize: 13, marginTop: 8 }}>Bài nói sẽ được chấm bởi giáo viên / AI.</p>
+          <h2 style={{ fontWeight: 700, fontSize: 22, color: "#111827" }}>{t("speaking_completed")}</h2>
+          <p style={{ color: "#6B7280", marginTop: 8 }}>{t("score_label")}<strong>{session.speakingScore?.toFixed(1)}</strong>{t("score_suffix")}</p>
+          <p style={{ color: "#EF4444", fontSize: 13, marginTop: 8 }}>{t("speaking_graded_note")}</p>
           <button onClick={() => router.push(`/vstep/${sessionId}`)}
             style={{ marginTop: 20, padding: "10px 28px", borderRadius: 99, background: "#EF4444", color: "white", border: "none", fontWeight: 600, cursor: "pointer" }}>
-            Xem tổng kết →
+            {t("view_summary")}
           </button>
         </div>
       </AppShell>
@@ -71,7 +71,7 @@ export default function VSTEPSpeakingPage() {
       setQuizId(selectedQuizId);
       setAttemptStarted(true);
     } catch {
-      setError("Không thể bắt đầu phần Nói. Vui lòng thử lại.");
+      setError(t("speaking_start_error"));
     }
   };
 
@@ -91,7 +91,7 @@ export default function VSTEPSpeakingPage() {
       mediaRecorderRef.current = mr;
       setRecordingState(s => ({ ...s, [partId]: "recording" }));
     } catch {
-      setError("Không thể truy cập micro. Vui lòng kiểm tra quyền truy cập.");
+      setError(t("mic_access_error"));
     }
   };
 
@@ -105,7 +105,7 @@ export default function VSTEPSpeakingPage() {
       await submitPart({ sessionId, part: "Speaking", score: 0 }).unwrap();
       setSubmitted(true);
     } catch {
-      setError("Không thể nộp bài. Vui lòng thử lại.");
+      setError(t("submit_error"));
     }
   };
 
@@ -113,13 +113,13 @@ export default function VSTEPSpeakingPage() {
     return (
       <AppShell>
         <div style={{ maxWidth: 600, margin: "0 auto", padding: "40px 16px" }}>
-          <button onClick={() => router.push(`/vstep/${sessionId}`)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280", fontSize: 14, marginBottom: 16 }}>← Quay lại</button>
-          <h2 style={{ fontWeight: 700, fontSize: 22, color: "#111827" }}>🎙 Phần 4: Nói</h2>
-          <p style={{ color: "#6B7280", marginTop: 6, marginBottom: 8 }}>3 phần nói · 12 phút tổng cộng</p>
+          <button onClick={() => router.push(`/vstep/${sessionId}`)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280", fontSize: 14, marginBottom: 16 }}>{t("back")}</button>
+          <h2 style={{ fontWeight: 700, fontSize: 22, color: "#111827" }}>{t("speaking_h2")}</h2>
+          <p style={{ color: "#6B7280", marginTop: 6, marginBottom: 8 }}>{t("speaking_info")}</p>
           <div style={{ background: "#FEF2F2", borderRadius: 10, padding: 14, marginBottom: 24, fontSize: 13, color: "#991B1B", lineHeight: 1.6 }}>
-            Đảm bảo micro đang hoạt động trước khi bắt đầu. Bài nói sẽ được chấm sau khi nộp.
+            {t("speaking_warning")}
           </div>
-          <QuizIdInput onConfirm={handleStart} loading={starting} label="Quiz ID cho phần Nói..." />
+          <QuizIdInput onConfirm={handleStart} loading={starting} label={t("quiz_id_speaking_ph")} loadingLabel={t("quiz_id_loading")} startLabel={t("quiz_id_start")} />
           {error && <p style={{ color: "#EF4444", marginTop: 12, fontSize: 13 }}>{error}</p>}
         </div>
       </AppShell>
@@ -131,11 +131,11 @@ export default function VSTEPSpeakingPage() {
       <AppShell>
         <div style={{ maxWidth: 600, margin: "0 auto", padding: "40px 16px", textAlign: "center" }}>
           <div style={{ fontSize: 48 }}>🎤</div>
-          <h2 style={{ fontWeight: 700, fontSize: 22, color: "#111827" }}>Đã nộp bài nói!</h2>
-          <p style={{ color: "#6B7280", marginTop: 8 }}>Bài của bạn đang chờ chấm điểm.</p>
+          <h2 style={{ fontWeight: 700, fontSize: 22, color: "#111827" }}>{t("speaking_submitted")}</h2>
+          <p style={{ color: "#6B7280", marginTop: 8 }}>{t("speaking_pending")}</p>
           <button onClick={() => router.push(`/vstep/${sessionId}`)}
             style={{ marginTop: 24, padding: "10px 28px", borderRadius: 99, background: "#EF4444", color: "white", border: "none", fontWeight: 600, cursor: "pointer" }}>
-            Xem tổng kết →
+            {t("view_summary")}
           </button>
         </div>
       </AppShell>
@@ -147,9 +147,9 @@ export default function VSTEPSpeakingPage() {
       <div style={{ maxWidth: 700, margin: "0 auto", padding: "24px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
           <div>
-            <h2 style={{ fontWeight: 700, fontSize: 18, color: "#111827", margin: 0 }}>🎙 Phần Nói</h2>
+            <h2 style={{ fontWeight: 700, fontSize: 18, color: "#111827", margin: 0 }}>{t("speaking_header")}</h2>
             <p style={{ color: "#6B7280", fontSize: 12, margin: "4px 0 0" }}>
-              Ghi âm lần lượt từng phần. Bấm nộp khi hoàn thành tất cả.
+              {t("speaking_instruction")}
             </p>
           </div>
           <button
@@ -157,11 +157,11 @@ export default function VSTEPSpeakingPage() {
             disabled={submitting}
             style={{ padding: "9px 24px", borderRadius: 99, border: "none", background: submitting ? "#D1D5DB" : "#EF4444", color: "white", fontWeight: 600, fontSize: 14, cursor: submitting ? "not-allowed" : "pointer" }}
           >
-            {submitting ? "Đang nộp..." : "Nộp bài"}
+            {submitting ? t("submitting") : t("submit")}
           </button>
         </div>
 
-        {PARTS.map(p => {
+        {PART_META.map(p => {
           const state = recordingState[p.id] ?? "idle";
           const blob = recordings[p.id];
           const url = blob ? URL.createObjectURL(blob) : null;
@@ -180,32 +180,32 @@ export default function VSTEPSpeakingPage() {
                   {p.icon}
                 </div>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>{p.label}</div>
-                  <div style={{ fontSize: 12, color: "#6B7280" }}>Thời gian đề xuất: {p.duration / 60} phút</div>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>{t(p.labelKey)}</div>
+                  <div style={{ fontSize: 12, color: "#6B7280" }}>{p.duration / 60} min</div>
                 </div>
                 <div style={{ marginLeft: "auto" }}>
                   {state === "done" && (
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#10B981", background: "#D1FAE5", padding: "3px 10px", borderRadius: 99 }}>✓ Đã ghi</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#10B981", background: "#D1FAE5", padding: "3px 10px", borderRadius: 99 }}>{t("recorded_badge")}</span>
                   )}
                   {state === "recording" && (
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#EF4444", background: "#FEE2E2", padding: "3px 10px", borderRadius: 99 }}>● Đang ghi</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#EF4444", background: "#FEE2E2", padding: "3px 10px", borderRadius: 99 }}>{t("recording_badge")}</span>
                   )}
                 </div>
               </div>
 
-              <p style={{ fontSize: 13, color: "#6B7280", marginBottom: 12 }}>{p.hint}</p>
+              <p style={{ fontSize: 13, color: "#6B7280", marginBottom: 12 }}>{t(p.hintKey)}</p>
 
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 {state === "idle" && (
                   <button onClick={() => startRecording(p.id)}
                     style={{ padding: "8px 20px", borderRadius: 99, border: "none", background: "#EF4444", color: "white", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
-                    ● Bắt đầu ghi âm
+                    {t("start_recording")}
                   </button>
                 )}
                 {state === "recording" && (
                   <button onClick={stopRecording}
                     style={{ padding: "8px 20px", borderRadius: 99, border: "none", background: "#374151", color: "white", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
-                    ■ Dừng ghi âm
+                    {t("stop_recording")}
                   </button>
                 )}
                 {state === "done" && (
@@ -213,7 +213,7 @@ export default function VSTEPSpeakingPage() {
                     {url && <audio src={url} controls style={{ flex: 1, height: 36 }} />}
                     <button onClick={() => { setRecordingState(s => ({ ...s, [p.id]: "idle" })); setRecordings(r => ({ ...r, [p.id]: null })); }}
                       style={{ padding: "8px 16px", borderRadius: 99, border: "2px solid #E5E7EB", background: "white", color: "#374151", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
-                      Ghi lại
+                      {t("re_record")}
                     </button>
                   </>
                 )}
@@ -228,7 +228,7 @@ export default function VSTEPSpeakingPage() {
   );
 }
 
-function QuizIdInput({ onConfirm, loading, label }: { onConfirm: (id: string) => void; loading: boolean; label: string }) {
+function QuizIdInput({ onConfirm, loading, label, loadingLabel, startLabel }: { onConfirm: (id: string) => void; loading: boolean; label: string; loadingLabel: string; startLabel: string }) {
   const [val, setVal] = useState("");
   return (
     <div style={{ display: "flex", gap: 10 }}>
@@ -236,7 +236,7 @@ function QuizIdInput({ onConfirm, loading, label }: { onConfirm: (id: string) =>
         style={{ flex: 1, padding: "10px 14px", borderRadius: 8, border: "2px solid #E5E7EB", fontSize: 14 }} />
       <button onClick={() => onConfirm(val.trim())} disabled={loading || !val.trim()}
         style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: loading || !val.trim() ? "#D1D5DB" : "#EF4444", color: "white", fontWeight: 600, cursor: loading || !val.trim() ? "not-allowed" : "pointer" }}>
-        {loading ? "..." : "Bắt đầu"}
+        {loading ? loadingLabel : startLabel}
       </button>
     </div>
   );

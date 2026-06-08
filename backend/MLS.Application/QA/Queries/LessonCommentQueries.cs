@@ -16,6 +16,7 @@ public class GetLessonCommentsQueryHandler(IApplicationDbContext db)
     {
         // Get top-level comments (pinned first, then newest first)
         IQueryable<MLS.Domain.Entities.LessonComment> baseQuery = db.LessonComments
+            .Include(c => c.Author).ThenInclude(a => a.Profile)
             .Where(c => !c.IsDeleted && c.ParentId == null);
 
         if (req.LessonId.HasValue)
@@ -64,6 +65,7 @@ public class GetLessonCommentsQueryHandler(IApplicationDbContext db)
 
         // Get first 3 replies for each top-level comment
         var rawReplies = await db.LessonComments
+            .Include(c => c.Author).ThenInclude(a => a.Profile)
             .Where(c => !c.IsDeleted && c.ParentId != null && topIds.Contains(c.ParentId.Value))
             .OrderBy(c => c.CreatedAt)
             .ToListAsync(ct);

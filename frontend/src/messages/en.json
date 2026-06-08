@@ -3002,6 +3002,26 @@
     "confirm_delete": "Delete this comment?",
     "report_success": "Comment reported"
   },
+  "qa_section": {
+    "title": "Q&A",
+    "placeholder": "Ask a question or share a note…",
+    "submit": "Submit question",
+    "submitting": "Submitting…",
+    "loading": "Loading…",
+    "empty": "No questions yet. Be the first to ask!",
+    "load_more": "Load more",
+    "deleted": "[Comment deleted]",
+    "pinned_badge": "Pinned",
+    "upvote": "Helpful",
+    "reply": "Reply",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "delete": "Delete",
+    "reply_placeholder": "Write a reply…",
+    "reply_cancel": "Cancel",
+    "reply_submit": "Send",
+    "reply_submitting": "Sending…"
+  },
   "books_tabs": {
     "shop": "Store",
     "library": "Library",

@@ -3,7 +3,9 @@
 import { useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
+import { useTranslations } from "next-intl";
 import type { RootState } from "@/lib/store";
+import { formatDate } from "@/lib/i18nFormat";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
@@ -39,10 +41,11 @@ function ArrayItemEditor({
   label: string; hint?: string; placeholder: string;
   items: string[]; onChange: (v: string[]) => void;
 }) {
+  const t = useTranslations("admin_course_detail");
   const [draft, setDraft] = useState("");
   const addItem = () => {
-    const t = draft.trim();
-    if (t && !items.includes(t)) { onChange([...items, t]); setDraft(""); }
+    const v = draft.trim();
+    if (v && !items.includes(v)) { onChange([...items, v]); setDraft(""); }
   };
   return (
     <div>
@@ -69,7 +72,7 @@ function ArrayItemEditor({
         />
         <button type="button" onClick={addItem}
           className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">
-          + Thêm
+          {t("btn_add_item")}
         </button>
       </div>
     </div>
@@ -83,12 +86,12 @@ const LANGUAGES = [
   { value: "EN", label: "🇬🇧 English" },
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  Draft:         { label: "Nháp",        color: "#6b7280", bg: "#f3f4f6" },
-  PendingReview: { label: "Chờ duyệt",   color: "#d97706", bg: "#fef3c7" },
-  Published:     { label: "Đã xuất bản", color: "#059669", bg: "#d1fae5" },
-  Hidden:        { label: "Đã ẩn",       color: "#ea580c", bg: "#ffedd5" },
-  Archived:      { label: "Lưu trữ",     color: "#dc2626", bg: "#fee2e2" },
+const STATUS_STYLES: Record<string, { color: string; bg: string }> = {
+  Draft:         { color: "#6b7280", bg: "#f3f4f6" },
+  PendingReview: { color: "#d97706", bg: "#fef3c7" },
+  Published:     { color: "#059669", bg: "#d1fae5" },
+  Hidden:        { color: "#ea580c", bg: "#ffedd5" },
+  Archived:      { color: "#dc2626", bg: "#fee2e2" },
 };
 
 type Tab = "info" | "media" | "price" | "settings" | "modules";
@@ -122,6 +125,8 @@ interface CourseForm {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CourseDetailPage() {
+  const t = useTranslations("admin_course_detail");
+  const tLang = useTranslations("language_labels");
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
@@ -231,7 +236,7 @@ export default function CourseDetailPage() {
       if (serverUrl) {
         setForm((prev) => ({ ...prev, [field]: serverUrl }));
       } else {
-        showMsg("error", "Upload ảnh thất bại");
+        showMsg("error", t("toast_upload_image_fail"));
         setPreview("");
       }
     });
@@ -308,9 +313,9 @@ export default function CourseDetailPage() {
         targetAudience: form.targetAudience.length > 0 ? JSON.stringify(form.targetAudience) : undefined,
       }).unwrap();
       setEditMode(false);
-      showMsg("success", "Đã cập nhật khóa học");
+      showMsg("success", t("toast_updated_ok"));
     } catch {
-      showMsg("error", "Cập nhật thất bại");
+      showMsg("error", t("toast_updated_fail"));
     }
   };
 
@@ -325,19 +330,19 @@ export default function CourseDetailPage() {
       }).unwrap();
       setShowAddModule(false);
       setModuleForm({ title: "", description: "", thumbnailUrl: "", estimatedDuration: "" });
-      showMsg("success", "Đã thêm module");
+      showMsg("success", t("toast_module_added"));
     } catch {
-      showMsg("error", "Thêm module thất bại");
+      showMsg("error", t("toast_module_add_fail"));
     }
   };
 
   const handleDeleteModule = async (moduleId: string, title: string) => {
-    if (!confirm(`Xóa module "${title}"? Toàn bộ bài học trong module sẽ bị xóa.`)) return;
+    if (!confirm(t("confirm_delete_module", { title }))) return;
     try {
       await deleteModule({ id: moduleId, courseId: id }).unwrap();
-      showMsg("success", "Đã xóa module");
+      showMsg("success", t("toast_module_deleted"));
     } catch {
-      showMsg("error", "Xóa module thất bại");
+      showMsg("error", t("toast_module_del_fail"));
     }
   };
 
@@ -345,31 +350,32 @@ export default function CourseDetailPage() {
     action: "submit" | "publish" | "hide" | "archive" | "clone"
   ) => {
     try {
-      if (action === "submit")  { await submitForReview(id).unwrap(); showMsg("success", "Đã gửi duyệt"); }
-      if (action === "publish") { await publishCourse({ id, approve: true }).unwrap(); showMsg("success", "Đã xuất bản"); }
-      if (action === "hide")    { await hideCourse(id).unwrap(); showMsg("success", "Đã ẩn khóa học"); }
-      if (action === "archive") { await archiveCourse(id).unwrap(); showMsg("success", "Đã lưu trữ"); }
+      if (action === "submit")  { await submitForReview(id).unwrap(); showMsg("success", t("toast_submitted")); }
+      if (action === "publish") { await publishCourse({ id, approve: true }).unwrap(); showMsg("success", t("toast_published")); }
+      if (action === "hide")    { await hideCourse(id).unwrap(); showMsg("success", t("toast_hidden")); }
+      if (action === "archive") { await archiveCourse(id).unwrap(); showMsg("success", t("toast_archived")); }
       if (action === "clone") {
         const res = await cloneCourse(id).unwrap();
-        showMsg("success", "Đã nhân bản – đang chuyển hướng…");
+        showMsg("success", t("toast_cloned"));
         setTimeout(() => router.push(`/teacher/courses/${res.id}`), 1200);
       }
     } catch {
-      showMsg("error", "Thao tác thất bại");
+      showMsg("error", t("toast_op_fail"));
     }
   };
 
-  if (isLoading) return <div className="p-6 text-gray-500">Đang tải...</div>;
-  if (!course)   return <div className="p-6 text-red-500">Không tìm thấy khóa học</div>;
+  if (isLoading) return <div className="p-6 text-gray-500">{t("loading")}</div>;
+  if (!course)   return <div className="p-6 text-red-500">{t("not_found")}</div>;
 
-  const statusCfg = STATUS_CONFIG[course.status] ?? { label: course.status, color: "#6b7280", bg: "#f3f4f6" };
+  const statusCfg = STATUS_STYLES[course.status] ?? { color: "#6b7280", bg: "#f3f4f6" };
+  const statusLabel = t(`st_${course.status}` as 'st_Draft');
 
   const TABS: { key: Tab; label: string }[] = [
-    { key: "info",     label: "Thông tin chung" },
-    { key: "media",    label: "Hình ảnh & Media" },
-    { key: "price",    label: "Giá & Thương mại" },
-    { key: "settings", label: "Cài đặt" },
-    { key: "modules",  label: `Modules (${course.modules.length})` },
+    { key: "info",     label: t("tab_info") },
+    { key: "media",    label: t("tab_media") },
+    { key: "price",    label: t("tab_price") },
+    { key: "settings", label: t("tab_settings") },
+    { key: "modules",  label: t("tab_modules", { n: course.modules.length }) },
   ];
 
   const inputCls = "w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
@@ -379,7 +385,7 @@ export default function CourseDetailPage() {
     <div className="p-6">
       {/* Breadcrumb */}
       <nav className="mb-4 text-sm text-gray-500">
-        <Link href="/teacher/courses" className="hover:text-blue-600">Khóa học</Link>
+        <Link href="/teacher/courses" className="hover:text-blue-600">{t("crumb_courses")}</Link>
         <span className="mx-2">/</span>
         <span className="font-medium text-gray-800">{course.title}</span>
       </nav>
@@ -396,16 +402,16 @@ export default function CourseDetailPage() {
           <h1 className="text-xl font-bold text-gray-900">{course.title}</h1>
           <span className="rounded-full px-3 py-1 text-xs font-semibold"
             style={{ color: statusCfg.color, background: statusCfg.bg }}>
-            {statusCfg.label}
+            {statusLabel}
           </span>
           {course.visibility === "Private" && (
-            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">🔒 Riêng tư</span>
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">🔒 {t("badge_private")}</span>
           )}
           {course.isFree && (
-            <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600">Miễn phí</span>
+            <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600">{t("badge_free")}</span>
           )}
           {course.certificateEnabled && (
-            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600">🎓 Chứng chỉ</span>
+            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600">🎓 {t("badge_certificate")}</span>
           )}
         </div>
 
@@ -414,34 +420,34 @@ export default function CourseDetailPage() {
             <>
               <button onClick={() => handleWorkflowAction("submit")}
                 className="rounded-lg bg-yellow-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-yellow-600">
-                Gửi duyệt
+                {t("btn_submit_review")}
               </button>
               <button onClick={() => handleWorkflowAction("publish")}
                 className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">
-                Xuất bản ngay
+                {t("btn_publish_now")}
               </button>
             </>
           )}
           {course.status === "Published" && (
             <button onClick={() => handleWorkflowAction("hide")}
               className="rounded-lg border border-orange-300 bg-orange-50 px-3 py-1.5 text-sm font-medium text-orange-700 hover:bg-orange-100">
-              Ẩn khóa học
+              {t("btn_hide")}
             </button>
           )}
           {(course.status === "Hidden" || course.status === "Published") && (
             <button onClick={() => handleWorkflowAction("archive")}
               className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50">
-              Lưu trữ
+              {t("btn_archive")}
             </button>
           )}
           <button onClick={() => handleWorkflowAction("clone")}
             className="rounded-lg border border-purple-300 bg-purple-50 px-3 py-1.5 text-sm font-medium text-purple-700 hover:bg-purple-100">
-            📋 Nhân bản
+            📋 {t("btn_clone")}
           </button>
           {!editMode && (
             <button onClick={startEdit}
               className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
-              ✏️ Chỉnh sửa
+              ✏️ {t("btn_edit")}
             </button>
           )}
         </div>
@@ -472,44 +478,44 @@ export default function CourseDetailPage() {
               {/* Tên + Mã */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2">
-                  <label className={labelCls}>Tên khóa học <span className="text-red-500">*</span></label>
+                  <label className={labelCls}>{t("f_title")} <span className="text-red-500">*</span></label>
                   <input required value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
                     className={inputCls}
-                    placeholder="VD: IELTS Academic – Khóa học toàn diện" />
+                    placeholder={t("f_title_ph")} />
                 </div>
                 <div>
-                  <label className={labelCls}>Mã khóa học</label>
+                  <label className={labelCls}>{t("f_code")}</label>
                   <input value={form.code}
                     onChange={(e) => setForm({ ...form, code: e.target.value })}
                     className={inputCls}
-                    placeholder="VD: IELTS-AC-01" />
+                    placeholder={t("f_code_ph")} />
                 </div>
               </div>
 
               {/* Mô tả ngắn */}
               <div>
                 <label className={labelCls}>
-                  Mô tả ngắn
-                  <span className="ml-1 font-normal text-gray-400 text-xs">(hiển thị trên thẻ khóa học – tối đa 200 ký tự)</span>
+                  {t("f_short_desc")}
+                  <span className="ml-1 font-normal text-gray-400 text-xs">{t("f_short_desc_hint")}</span>
                 </label>
                 <input value={form.shortDescription} maxLength={200}
                   onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
                   className={inputCls}
-                  placeholder="Tóm tắt nội dung khóa học trong 1–2 câu" />
+                  placeholder={t("f_short_desc_ph")} />
                 <p className="mt-1 text-right text-xs text-gray-400">{form.shortDescription.length}/200</p>
               </div>
 
               {/* Mô tả chi tiết – CKEditor */}
               <div>
                 <label className={labelCls}>
-                  Mô tả chi tiết
-                  <span className="ml-1 font-normal text-gray-400 text-xs">(hỗ trợ định dạng văn bản, hình ảnh, bảng biểu)</span>
+                  {t("f_desc")}
+                  <span className="ml-1 font-normal text-gray-400 text-xs">{t("f_desc_hint")}</span>
                 </label>
                 <RichTextEditor
                   value={form.description}
                   onChange={(val) => setForm({ ...form, description: val })}
-                  placeholder="Giới thiệu chi tiết: mục tiêu học tập, nội dung chương trình, đối tượng phù hợp..."
+                  placeholder={t("f_desc_ph")}
                   height={350}
                 />
               </div>
@@ -517,65 +523,65 @@ export default function CourseDetailPage() {
               {/* Cấp độ + Ngôn ngữ + Thời lượng */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className={labelCls}>Cấp độ</label>
+                  <label className={labelCls}>{t("f_level")}</label>
                   <select value={form.level}
                     onChange={(e) => setForm({ ...form, level: Number(e.target.value) })}
                     className={inputCls}>
-                    {learningLevels.length === 0 && <option value={form.level}>Cấp {form.level}</option>}
+                    {learningLevels.length === 0 && <option value={form.level}>{t("level_short", { n: form.level })}</option>}
                     {learningLevels.map((l, i) => <option key={l.id} value={i + 1}>{l.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className={labelCls}>Ngôn ngữ</label>
+                  <label className={labelCls}>{t("f_language")}</label>
                   <select value={form.language}
                     onChange={(e) => setForm({ ...form, language: e.target.value })}
                     className={inputCls}>
-                    {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+                    {LANGUAGE_VALUES.map((v) => <option key={v} value={v}>{tLang(LANG_KEY_MAP[v])}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className={labelCls}>Tổng thời lượng (phút)</label>
+                  <label className={labelCls}>{t("f_duration")}</label>
                   <input type="number" min={0} value={form.duration}
                     onChange={(e) => setForm({ ...form, duration: e.target.value })}
-                    className={inputCls} placeholder="VD: 1200" />
+                    className={inputCls} placeholder={t("f_duration_ph")} />
                 </div>
               </div>
 
               {/* Tags */}
               <div>
                 <label className={labelCls}>
-                  Tags
-                  <span className="ml-1 font-normal text-gray-400 text-xs">(cách nhau bởi dấu phẩy)</span>
+                  {t("f_tags")}
+                  <span className="ml-1 font-normal text-gray-400 text-xs">{t("f_tags_hint")}</span>
                 </label>
                 <input value={form.tags}
                   onChange={(e) => setForm({ ...form, tags: e.target.value })}
                   className={inputCls}
-                  placeholder="VD: IELTS, English, Academic, Writing" />
+                  placeholder={t("f_tags_ph")} />
               </div>
 
               {/* Những gì bạn sẽ học */}
               <ArrayItemEditor
-                label="Những gì bạn sẽ học"
-                hint="(mỗi dòng là một điểm nổi bật của khóa học)"
-                placeholder="VD: Giao tiếp tự tin trong các tình huống thực tế"
+                label={t("f_outcomes")}
+                hint={t("f_outcomes_hint")}
+                placeholder={t("f_outcomes_ph")}
                 items={form.outcomes}
                 onChange={(v) => setForm({ ...form, outcomes: v })}
               />
 
               {/* Yêu cầu */}
               <ArrayItemEditor
-                label="Yêu cầu"
-                hint="(điều kiện đầu vào hoặc cần chuẩn bị)"
-                placeholder="VD: Không cần có kinh nghiệm trước"
+                label={t("f_requirements")}
+                hint={t("f_requirements_hint")}
+                placeholder={t("f_requirements_ph")}
                 items={form.requirements}
                 onChange={(v) => setForm({ ...form, requirements: v })}
               />
 
               {/* Đối tượng học viên */}
               <ArrayItemEditor
-                label="Khóa học này dành cho ai?"
-                hint="(mô tả đối tượng học viên phù hợp)"
-                placeholder="VD: Người mới bắt đầu học từ con số 0"
+                label={t("f_target")}
+                hint={t("f_target_hint")}
+                placeholder={t("f_target_ph")}
                 items={form.targetAudience}
                 onChange={(v) => setForm({ ...form, targetAudience: v })}
               />
@@ -583,7 +589,7 @@ export default function CourseDetailPage() {
               {/* Slug (read-only) */}
               {course.slug && (
                 <div>
-                  <label className={labelCls}>Slug URL <span className="font-normal text-gray-400 text-xs">(tự động tạo từ tên)</span></label>
+                  <label className={labelCls}>{t("f_slug")} <span className="font-normal text-gray-400 text-xs">{t("f_slug_hint")}</span></label>
                   <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
                     <span className="text-sm text-gray-400">/courses/</span>
                     <span className="text-sm font-medium text-blue-600">{course.slug}</span>
@@ -616,17 +622,17 @@ export default function CourseDetailPage() {
               )}
 
               <div className="flex flex-wrap gap-6 border-t border-gray-100 pt-4 text-sm">
-                <InfoItem label="Cấp độ" value={learningLevels[course.level - 1]?.name ?? `Cấp ${course.level}`} />
-                <InfoItem label="Ngôn ngữ" value={LANGUAGES.find(l => l.value === course.language)?.label ?? course.language ?? "—"} />
-                {course.duration != null && <InfoItem label="Thời lượng" value={`${course.duration} phút`} />}
-                {course.slug && <InfoItem label="Slug" value={`/${course.slug}`} highlight />}
-                {course.publishedAt && <InfoItem label="Xuất bản" value={new Date(course.publishedAt).toLocaleDateString("vi-VN")} />}
-                <InfoItem label="Ngày tạo" value={new Date(course.createdAt).toLocaleDateString("vi-VN")} />
+                <InfoItem label={t("lbl_level")} value={learningLevels[course.level - 1]?.name ?? t("level_short", { n: course.level })} />
+                <InfoItem label={t("lbl_language")} value={course.language ? tLang(LANG_KEY_MAP[course.language] ?? course.language.toLowerCase()) : t("placeholder_dash")} />
+                {course.duration != null && <InfoItem label={t("lbl_duration")} value={t("duration_value", { n: course.duration })} />}
+                {course.slug && <InfoItem label={t("lbl_slug")} value={`/${course.slug}`} highlight />}
+                {course.publishedAt && <InfoItem label={t("lbl_published")} value={formatDate(course.publishedAt)} />}
+                <InfoItem label={t("lbl_created")} value={formatDate(course.createdAt)} />
               </div>
 
               {course.tags && (
                 <div className="flex flex-wrap gap-1.5">
-                  {course.tags.split(",").map((t) => t.trim()).filter(Boolean).map((tag) => (
+                  {course.tags.split(",").map((tg) => tg.trim()).filter(Boolean).map((tag) => (
                     <span key={tag} className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
                       {tag}
                     </span>
@@ -637,7 +643,7 @@ export default function CourseDetailPage() {
               {/* View: Những gì bạn sẽ học */}
               {tryParseJsonArray(course.outcomes).length > 0 && (
                 <div className="border-t border-gray-100 pt-4">
-                  <h3 className="mb-2 text-sm font-semibold text-gray-700">Những gì bạn sẽ học</h3>
+                  <h3 className="mb-2 text-sm font-semibold text-gray-700">{t("outcomes_title")}</h3>
                   <ul className="space-y-1">
                     {tryParseJsonArray(course.outcomes).map((item, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
@@ -651,7 +657,7 @@ export default function CourseDetailPage() {
               {/* View: Yêu cầu */}
               {tryParseJsonArray(course.requirements).length > 0 && (
                 <div className="border-t border-gray-100 pt-4">
-                  <h3 className="mb-2 text-sm font-semibold text-gray-700">Yêu cầu</h3>
+                  <h3 className="mb-2 text-sm font-semibold text-gray-700">{t("requirements_title")}</h3>
                   <ul className="space-y-1">
                     {tryParseJsonArray(course.requirements).map((item, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
@@ -665,7 +671,7 @@ export default function CourseDetailPage() {
               {/* View: Đối tượng */}
               {tryParseJsonArray(course.targetAudience).length > 0 && (
                 <div className="border-t border-gray-100 pt-4">
-                  <h3 className="mb-2 text-sm font-semibold text-gray-700">Khóa học này dành cho ai?</h3>
+                  <h3 className="mb-2 text-sm font-semibold text-gray-700">{t("target_title")}</h3>
                   <ul className="space-y-1">
                     {tryParseJsonArray(course.targetAudience).map((item, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
@@ -687,8 +693,8 @@ export default function CourseDetailPage() {
 
             {/* ── Thumbnail ── */}
             <div>
-              <label className={labelCls}>Ảnh đại diện (Thumbnail)</label>
-              <p className="mb-3 text-xs text-gray-400">Tỉ lệ 16:9, tối thiểu 640×360px, định dạng JPG/PNG/WebP</p>
+              <label className={labelCls}>{t("thumb_label")}</label>
+              <p className="mb-3 text-xs text-gray-400">{t("thumb_hint")}</p>
 
               {/* Preview area */}
               <div
@@ -710,7 +716,7 @@ export default function CourseDetailPage() {
                     {editMode && (
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 opacity-0 transition-opacity hover:opacity-100 rounded-xl">
                         <span className="text-2xl">📷</span>
-                        <span className="mt-1 text-xs font-medium text-white">Đổi ảnh</span>
+                        <span className="mt-1 text-xs font-medium text-white">{t("thumb_change")}</span>
                       </div>
                     )}
                   </>
@@ -719,11 +725,11 @@ export default function CourseDetailPage() {
                     <span className="text-4xl">🖼️</span>
                     {editMode ? (
                       <>
-                        <span className="text-sm font-medium">Nhấn để chọn ảnh</span>
-                        <span className="text-xs">hoặc kéo thả vào đây</span>
+                        <span className="text-sm font-medium">{t("thumb_pick")}</span>
+                        <span className="text-xs">{t("thumb_drop")}</span>
                       </>
                     ) : (
-                      <span className="text-sm">Chưa có ảnh đại diện</span>
+                      <span className="text-sm">{t("thumb_empty")}</span>
                     )}
                   </div>
                 )}
@@ -746,7 +752,7 @@ export default function CourseDetailPage() {
                     disabled={thumbUploading}
                     className="rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
                   >
-                    {thumbUploading ? "⏳ Đang upload..." : "📂 Chọn file"}
+                    {thumbUploading ? t("btn_uploading") : t("btn_pick_file")}
                   </button>
                   {(thumbPreview || form.thumbnailUrl) && !thumbUploading && (
                     <button
@@ -754,7 +760,7 @@ export default function CourseDetailPage() {
                       onClick={() => { setThumbPreview(""); setForm({ ...form, thumbnailUrl: "" }); }}
                       className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
                     >
-                      Xóa ảnh
+                      {t("btn_remove_image")}
                     </button>
                   )}
                 </div>
@@ -762,12 +768,12 @@ export default function CourseDetailPage() {
 
               {editMode && (
                 <div className="mt-3">
-                  <p className="mb-1 text-xs text-gray-400">Hoặc nhập URL trực tiếp:</p>
+                  <p className="mb-1 text-xs text-gray-400">{t("or_url")}</p>
                   <input
                     type="text"
                     value={thumbPreview ? "" : form.thumbnailUrl}
                     onChange={(e) => { setThumbPreview(""); setForm({ ...form, thumbnailUrl: e.target.value }); }}
-                    placeholder="https://cdn.example.com/thumbnail.jpg"
+                    placeholder={t("thumb_url_ph")}
                     className={inputCls}
                   />
                 </div>
@@ -776,8 +782,8 @@ export default function CourseDetailPage() {
 
             {/* ── Banner ── */}
             <div className="border-t border-gray-100 pt-6">
-              <label className={labelCls}>Banner trang giới thiệu (Banner)</label>
-              <p className="mb-3 text-xs text-gray-400">Tỉ lệ 16:5, tối thiểu 1200×375px, định dạng JPG/PNG/WebP</p>
+              <label className={labelCls}>{t("banner_label")}</label>
+              <p className="mb-3 text-xs text-gray-400">{t("banner_hint")}</p>
 
               <div
                 onClick={() => editMode && bannerInputRef.current?.click()}
@@ -798,7 +804,7 @@ export default function CourseDetailPage() {
                     {editMode && (
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 opacity-0 transition-opacity hover:opacity-100 rounded-xl">
                         <span className="text-2xl">📷</span>
-                        <span className="mt-1 text-xs font-medium text-white">Đổi banner</span>
+                        <span className="mt-1 text-xs font-medium text-white">{t("banner_change")}</span>
                       </div>
                     )}
                   </>
@@ -807,11 +813,11 @@ export default function CourseDetailPage() {
                     <span className="text-4xl">🏞️</span>
                     {editMode ? (
                       <>
-                        <span className="text-sm font-medium">Nhấn để chọn banner</span>
-                        <span className="text-xs">hoặc kéo thả vào đây</span>
+                        <span className="text-sm font-medium">{t("banner_pick")}</span>
+                        <span className="text-xs">{t("thumb_drop")}</span>
                       </>
                     ) : (
-                      <span className="text-sm">Chưa có banner</span>
+                      <span className="text-sm">{t("banner_empty")}</span>
                     )}
                   </div>
                 )}
@@ -832,7 +838,7 @@ export default function CourseDetailPage() {
                     onClick={() => bannerInputRef.current?.click()}
                     className="rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
                   >
-                    📂 Chọn file
+                    {t("btn_pick_file")}
                   </button>
                   {(bannerPreview || form.bannerUrl) && (
                     <button
@@ -840,7 +846,7 @@ export default function CourseDetailPage() {
                       onClick={() => { setBannerPreview(""); setForm({ ...form, bannerUrl: "" }); }}
                       className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
                     >
-                      Xóa banner
+                      {t("btn_remove_banner")}
                     </button>
                   )}
                 </div>
@@ -848,12 +854,12 @@ export default function CourseDetailPage() {
 
               {editMode && (
                 <div className="mt-3">
-                  <p className="mb-1 text-xs text-gray-400">Hoặc nhập URL trực tiếp:</p>
+                  <p className="mb-1 text-xs text-gray-400">{t("or_url")}</p>
                   <input
                     type="text"
                     value={bannerPreview ? "" : form.bannerUrl}
                     onChange={(e) => { setBannerPreview(""); setForm({ ...form, bannerUrl: e.target.value }); }}
-                    placeholder="https://cdn.example.com/banner.jpg"
+                    placeholder={t("banner_url_ph")}
                     className={inputCls}
                   />
                 </div>
@@ -869,12 +875,12 @@ export default function CourseDetailPage() {
       {activeTab === "price" && (
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <form onSubmit={handleUpdate} className="space-y-6">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Giá khóa học</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t("price_title")}</p>
 
             {/* isFree toggle */}
             <ToggleRow
-              label="Khóa học miễn phí"
-              desc="Học viên có thể truy cập hoàn toàn miễn phí"
+              label={t("price_isfree_label")}
+              desc={t("price_isfree_desc")}
               checked={editMode ? form.isFree : (course.isFree ?? false)}
               onToggle={() => {
                 if (!editMode) startEdit();
@@ -887,7 +893,7 @@ export default function CourseDetailPage() {
             {!(editMode ? form.isFree : (course.isFree ?? false)) && (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className={labelCls}>Giá gốc (VNĐ)</label>
+                  <label className={labelCls}>{t("price_orig_label")}</label>
                   <input
                     type="number"
                     min={0}
@@ -897,11 +903,11 @@ export default function CourseDetailPage() {
                       setForm((prev) => ({ ...prev, price: Number(e.target.value) }));
                     }}
                     className={inputCls}
-                    placeholder="VD: 499000"
+                    placeholder={t("price_orig_ph")}
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>Giá khuyến mãi (VNĐ)</label>
+                  <label className={labelCls}>{t("price_discount_label")}</label>
                   <input
                     type="number"
                     min={0}
@@ -911,11 +917,11 @@ export default function CourseDetailPage() {
                       setForm((prev) => ({ ...prev, discountPrice: e.target.value }));
                     }}
                     className={inputCls}
-                    placeholder="Để trống nếu không có"
+                    placeholder={t("price_discount_ph")}
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>Giảm giá đến ngày</label>
+                  <label className={labelCls}>{t("price_discount_ends_label")}</label>
                   <input
                     type="date"
                     value={editMode ? form.discountEndsAt : (course.discountEndsAt ? course.discountEndsAt.slice(0, 10) : "")}
@@ -932,7 +938,7 @@ export default function CourseDetailPage() {
             {/* Enrollment dates */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 border-t border-gray-100 pt-4">
               <div>
-                <label className={labelCls}>Ngày mở ghi danh</label>
+                <label className={labelCls}>{t("price_start_label")}</label>
                 <input
                   type="date"
                   value={editMode ? form.startDate : (course.startDate ? course.startDate.slice(0, 10) : "")}
@@ -944,7 +950,7 @@ export default function CourseDetailPage() {
                 />
               </div>
               <div>
-                <label className={labelCls}>Ngày đóng ghi danh</label>
+                <label className={labelCls}>{t("price_end_label")}</label>
                 <input
                   type="date"
                   value={editMode ? form.endDate : (course.endDate ? course.endDate.slice(0, 10) : "")}
@@ -972,10 +978,10 @@ export default function CourseDetailPage() {
         <div className="space-y-4">
           {/* Publish timeline – always visible */}
           <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Trạng thái xuất bản</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">{t("settings_status_title")}</p>
             <div className="flex items-center">
               {["Draft","PendingReview","Published","Hidden","Archived"].map((s, i) => {
-                const cfg = STATUS_CONFIG[s];
+                const cfg = STATUS_STYLES[s];
                 const isCurrent = course.status === s;
                 return (
                   <div key={s} className="flex items-center">
@@ -984,7 +990,7 @@ export default function CourseDetailPage() {
                         style={{ background: isCurrent ? cfg.color : "#e5e7eb" }} />
                       <span className="text-xs whitespace-nowrap"
                         style={{ color: isCurrent ? cfg.color : "#9ca3af", fontWeight: isCurrent ? 700 : 400 }}>
-                        {cfg.label}
+                        {t(`st_${s}` as 'st_Draft')}
                       </span>
                     </div>
                     {i < 4 && <div className="mx-1 mb-4 h-0.5 w-10 bg-gray-200" />}
@@ -996,15 +1002,15 @@ export default function CourseDetailPage() {
 
           {/* Settings form – always interactive, no editMode required */}
           <form onSubmit={handleUpdate} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Cấu hình</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t("settings_config_title")}</p>
 
             {/* Visibility */}
             <div>
-              <label className={labelCls}>Phạm vi hiển thị</label>
+              <label className={labelCls}>{t("vis_label")}</label>
               <div className="mt-2 grid grid-cols-2 gap-3">
                 {[
-                  { value: "Public",  icon: "🌐", title: "Công khai",  desc: "Hiển thị trong danh sách khóa học" },
-                  { value: "Private", icon: "🔒", title: "Riêng tư",   desc: "Chỉ truy cập qua link hoặc ghi danh" },
+                  { value: "Public",  icon: "🌐", title: t("vis_public_title"),  desc: t("vis_public_desc") },
+                  { value: "Private", icon: "🔒", title: t("vis_private_title"), desc: t("vis_private_desc") },
                 ].map((opt) => (
                   <button key={opt.value} type="button"
                     onClick={() => { if (!editMode) startEdit(); setForm((prev) => ({ ...prev, visibility: opt.value })); }}
@@ -1022,8 +1028,8 @@ export default function CourseDetailPage() {
             </div>
 
             <ToggleRow
-              label="Cấp chứng chỉ hoàn thành"
-              desc="Học viên nhận chứng chỉ kỹ thuật số sau khi hoàn thành khóa học"
+              label={t("cert_label")}
+              desc={t("cert_desc")}
               checked={editMode ? form.certificateEnabled : (course.certificateEnabled ?? false)}
               onToggle={() => {
                 if (!editMode) startEdit();
@@ -1033,8 +1039,8 @@ export default function CourseDetailPage() {
             />
 
             <ToggleRow
-              label="Bắt buộc hoàn thành theo thứ tự"
-              desc="Học viên phải hoàn thành bài trước mới mở bài học tiếp theo"
+              label={t("completion_label")}
+              desc={t("completion_desc")}
               checked={editMode ? form.completionRequired : (course.completionRequired ?? false)}
               onToggle={() => {
                 if (!editMode) startEdit();
@@ -1053,19 +1059,19 @@ export default function CourseDetailPage() {
         <div>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">
-              Danh sách modules ({course.modules.length})
+              {t("mods_title", { n: course.modules.length })}
             </h2>
             <button onClick={() => setShowAddModule(true)}
               className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
-              + Thêm module
+              {t("btn_add_module")}
             </button>
           </div>
 
           {course.modules.length === 0 ? (
             <div className="rounded-xl border-2 border-dashed border-gray-200 py-16 text-center">
               <div className="mb-3 text-5xl">📦</div>
-              <p className="font-semibold text-gray-600">Chưa có module nào</p>
-              <p className="mt-1 text-sm text-gray-400">Nhấn "+ Thêm module" để tổ chức nội dung khóa học</p>
+              <p className="font-semibold text-gray-600">{t("mods_empty_title")}</p>
+              <p className="mt-1 text-sm text-gray-400">{t("mods_empty_hint")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -1101,14 +1107,14 @@ export default function CourseDetailPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-400">{module.sessionCount} session</span>
+                    <span className="text-sm text-gray-400">{t("session_count", { n: module.sessionCount })}</span>
                     <Link href={`/teacher/modules/${module.id}`}
                       className="rounded-lg bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200">
-                      Quản lý
+                      {t("btn_manage")}
                     </Link>
                     <button onClick={() => handleDeleteModule(module.id, module.title)}
                       className="rounded-lg bg-red-50 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-100">
-                      Xóa
+                      {t("btn_delete")}
                     </button>
                   </div>
                 </div>
@@ -1122,24 +1128,24 @@ export default function CourseDetailPage() {
       {showAddModule && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-            <h2 className="mb-4 text-lg font-semibold">Thêm module mới</h2>
+            <h2 className="mb-4 text-lg font-semibold">{t("modal_add_title")}</h2>
             <form onSubmit={handleAddModule} className="space-y-4">
               <div>
-                <label className={labelCls}>Tên module <span className="text-red-500">*</span></label>
+                <label className={labelCls}>{t("f_mod_title")} <span className="text-red-500">*</span></label>
                 <input required value={moduleForm.title}
                   onChange={(e) => setModuleForm({ ...moduleForm, title: e.target.value })}
                   className={inputCls}
-                  placeholder="VD: Chương 1 – Phát âm cơ bản" />
+                  placeholder={t("f_mod_title_ph")} />
               </div>
               <div>
-                <label className={labelCls}>Mô tả</label>
+                <label className={labelCls}>{t("f_mod_desc")}</label>
                 <textarea value={moduleForm.description}
                   onChange={(e) => setModuleForm({ ...moduleForm, description: e.target.value })}
                   rows={2} className={inputCls}
-                  placeholder="Mục tiêu của chương này..." />
+                  placeholder={t("f_mod_desc_ph")} />
               </div>
               <div>
-                <label className={labelCls}>Thumbnail</label>
+                <label className={labelCls}>{t("f_mod_thumb")}</label>
                 <input ref={moduleThumbInputRef} type="file" accept="image/*" className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
@@ -1149,7 +1155,7 @@ export default function CourseDetailPage() {
                     uploadImage(file).then((url) => {
                       setModuleThumbUploading(false);
                       if (url) setModuleForm(f => ({ ...f, thumbnailUrl: url }));
-                      else { setModuleThumbPreview(""); showMsg("error", "Upload ảnh thất bại"); }
+                      else { setModuleThumbPreview(""); showMsg("error", t("toast_upload_image_fail")); }
                     });
                   }}
                 />
@@ -1163,27 +1169,27 @@ export default function CourseDetailPage() {
                   ) : (
                     <div className="flex h-full flex-col items-center justify-center gap-1 text-gray-400">
                       <span className="text-xl">🖼️</span>
-                      <span className="text-xs">Nhấp để tải ảnh</span>
+                      <span className="text-xs">{t("mod_thumb_pick_hint")}</span>
                     </div>
                   )}
                 </div>
-                {moduleThumbUploading && <p className="mt-1 text-xs text-blue-500">⏳ Đang upload...</p>}
+                {moduleThumbUploading && <p className="mt-1 text-xs text-blue-500">{t("mod_thumb_uploading")}</p>}
               </div>
               <div>
-                <label className={labelCls}>Thời lượng ước tính (phút)</label>
+                <label className={labelCls}>{t("f_mod_duration")}</label>
                 <input type="number" min={0} value={moduleForm.estimatedDuration}
                   onChange={(e) => setModuleForm({ ...moduleForm, estimatedDuration: e.target.value })}
                   className={inputCls}
-                  placeholder="VD: 60" />
+                  placeholder={t("f_mod_duration_ph")} />
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setShowAddModule(false)}
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">
-                  Hủy
+                  {t("btn_cancel")}
                 </button>
                 <button type="submit" disabled={creatingModule}
                   className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">
-                  {creatingModule ? "Đang thêm..." : "Thêm module"}
+                  {creatingModule ? t("btn_adding") : t("btn_add_mod")}
                 </button>
               </div>
             </form>
@@ -1239,15 +1245,16 @@ function ToggleRow({
 }
 
 function SaveCancelButtons({ updating, onCancel }: { updating: boolean; onCancel: () => void }) {
+  const t = useTranslations("admin_course_detail");
   return (
     <div className="flex gap-3 border-t border-gray-100 pt-4">
       <button type="submit" disabled={updating}
         className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
-        {updating ? "Đang lưu..." : "Lưu thay đổi"}
+        {updating ? t("btn_saving") : t("btn_save")}
       </button>
       <button type="button" onClick={onCancel}
         className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm hover:bg-gray-50">
-        Hủy
+        {t("btn_cancel")}
       </button>
     </div>
   );

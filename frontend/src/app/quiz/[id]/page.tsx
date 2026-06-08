@@ -4,9 +4,11 @@ import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAppSelector } from "@/lib/hooks";
+import { useTranslations } from "next-intl";
 import {
   useGetQuizQuery,
   useGetMyAttemptsQuery,
+  useGetTestQuotaQuery,
 } from "@/lib/features/quiz/quizApi";
 
 const MLS_NAVY = "#1565C0";
@@ -40,7 +42,7 @@ function fmtTime(seconds: number): string {
 
 function fmtDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(d);
 }
 
 export default function QuizIntroPage() {
@@ -52,6 +54,8 @@ export default function QuizIntroPage() {
 
   const { data: quiz, isLoading: quizLoading } = useGetQuizQuery(id, { skip: !id });
   const { data: attempts, isLoading: attemptsLoading } = useGetMyAttemptsQuery(id, { skip: !id || !isAuth });
+  const { data: quota } = useGetTestQuotaQuery(id, { skip: !id || !isAuth });
+  const t = useTranslations("quiz");
 
   const bestAttempt = attempts?.reduce(
     (best, a) => (a.percentage > (best?.percentage ?? -1) ? a : best),
@@ -85,8 +89,8 @@ export default function QuizIntroPage() {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center" }}>
-          <p style={{ color: "#6B7280", marginBottom: 16 }}>Không tìm thấy bài kiểm tra</p>
-          <Link href="/my-lesson" style={{ color: MLS_NAVY, textDecoration: "none" }}>← Quay lại</Link>
+          <p style={{ color: "#6B7280", marginBottom: 16 }}>{t("not_found")}</p>
+          <Link href="/my-lesson" style={{ color: MLS_NAVY, textDecoration: "none" }}>{t("back")}</Link>
         </div>
       </div>
     );
@@ -101,7 +105,7 @@ export default function QuizIntroPage() {
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
           <Link href="/my-lesson" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.8)", textDecoration: "none", marginBottom: 24, fontSize: 14 }}>
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-            Quay lại
+            {t("back")}
           </Link>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.15)", borderRadius: 20, padding: "4px 14px", marginBottom: 16 }}>
             <span style={{ color: "rgba(255,255,255,0.9)", fontSize: 13 }}>
@@ -125,14 +129,14 @@ export default function QuizIntroPage() {
       <div style={{ maxWidth: 720, margin: "-32px auto 0", padding: "0 24px 48px" }}>
         {/* Info card */}
         <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.08)", padding: 28, marginBottom: 20 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", marginBottom: 20 }}>Thông tin bài kiểm tra</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", marginBottom: 20 }}>{t("info_title")}</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
             {[
-              { label: "Số câu hỏi", value: `${quiz.questions.length} câu` },
-              { label: "Thời gian", value: quiz.timeLimitSeconds ? fmtTime(quiz.timeLimitSeconds) : "Không giới hạn" },
-              { label: "Điểm đậu", value: `${quiz.passingScore}%` },
-              { label: "Câu hỏi ngẫu nhiên", value: quiz.shuffleQuestions ? "Có" : "Không" },
-              { label: "Hiển thị đáp án", value: quiz.showCorrectAnswer ? "Sau khi nộp" : "Không" },
+              { label: "Số câu hỏi", value: t("questions_n", {count: quiz.questions.length}) },
+              { label: "Thời gian", value: quiz.timeLimitSeconds ? fmtTime(quiz.timeLimitSeconds) : t("unlimited_time") },
+              { label: t("pass_score"), value: `${quiz.passingScore}%` },
+              { label: t("random_questions"), value: quiz.shuffleQuestions ? "Có" : "Không" },
+              { label: t("show_answers"), value: quiz.showCorrectAnswer ? t("after_submit") : "Không" },
             ].map(({ label, value }) => (
               <div key={label} style={{ background: "#F8FAFC", borderRadius: 10, padding: "12px 16px" }}>
                 <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 4 }}>{label}</div>
@@ -151,14 +155,14 @@ export default function QuizIntroPage() {
             display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
             <div>
-              <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 4 }}>Kết quả tốt nhất của bạn</div>
+              <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 4 }}>{t("best_result")}</div>
               <div style={{ fontSize: 22, fontWeight: 800, color: bestAttempt.passed ? "#16A34A" : "#EA580C" }}>
                 {bestAttempt.percentage.toFixed(0)}%
-                <span style={{ fontSize: 14, fontWeight: 500, marginLeft: 8 }}>{bestAttempt.passed ? "✓ Đậu" : "✗ Chưa đậu"}</span>
+                <span style={{ fontSize: 14, fontWeight: 500, marginLeft: 8 }}>{bestAttempt.passed ? t("passed_badge") : t("failed_badge")}</span>
               </div>
             </div>
             <Link href={`/quiz/${id}/result/${bestAttempt.id}`} style={{ color: MLS_NAVY, textDecoration: "none", fontSize: 14, fontWeight: 600 }}>
-              Xem chi tiết →
+              {t("view_detail")}
             </Link>
           </div>
         )}
@@ -166,7 +170,7 @@ export default function QuizIntroPage() {
         {/* Attempt history */}
         {attempts && attempts.length > 0 && (
           <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.08)", padding: 24, marginBottom: 20 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 16 }}>Lịch sử làm bài ({attempts.length})</h2>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 16 }}>{t("attempt_history", {count: attempts.length})}</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {attempts.slice(0, 5).map((a, i) => (
                 <div key={a.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#F9FAFB", borderRadius: 8 }}>
@@ -181,13 +185,13 @@ export default function QuizIntroPage() {
                       {attempts.length - i}
                     </div>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>{a.percentage.toFixed(0)}% — {a.passed ? "Đậu" : "Chưa đậu"}</div>
-                      <div style={{ fontSize: 12, color: "#9CA3AF" }}>{a.submittedAt ? fmtDate(a.submittedAt) : "Chưa nộp"}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>{a.percentage.toFixed(0)}% — {a.passed ? t("passed_attempt") : t("failed_attempt")}</div>
+                      <div style={{ fontSize: 12, color: "#9CA3AF" }}>{a.submittedAt ? fmtDate(a.submittedAt) : t("not_submitted")}</div>
                     </div>
                   </div>
                   {a.status === "Completed" && (
                     <Link href={`/quiz/${id}/result/${a.id}`} style={{ fontSize: 13, color: MLS_NAVY, textDecoration: "none", fontWeight: 600 }}>
-                      Xem
+                      {t("view_attempt")}
                     </Link>
                   )}
                 </div>
@@ -198,25 +202,63 @@ export default function QuizIntroPage() {
 
         {/* Start / Auth block */}
         {isAuth ? (
-          <button
-            onClick={handleStart}
-            style={{
-              width: "100%", padding: "18px 0", borderRadius: 12, border: "none", cursor: "pointer",
-              background: MLS_NAVY, color: "#fff", fontSize: 18, fontWeight: 700,
-              boxShadow: `0 4px 16px rgba(21,101,192,0.4)`,
-            }}
-          >
-            {attempts && attempts.length > 0 ? "Làm lại bài kiểm tra" : "Bắt đầu làm bài"}
-          </button>
+          <div>
+            {/* Quota badge */}
+            {quota?.isLimited && (
+              <div style={{
+                marginBottom: 16, padding: "12px 16px", borderRadius: 12,
+                background: quota.remaining === 0 ? "#FEF2F2" : quota.remaining <= 1 ? "#FFFBEB" : "#F0F9FF",
+                border: `1px solid ${quota.remaining === 0 ? "#FECACA" : quota.remaining <= 1 ? "#FDE68A" : "#BAE6FD"}`,
+                display: "flex", alignItems: "center", gap: 12,
+              }}>
+                <span style={{ fontSize: 20 }}>
+                  {quota.remaining === 0 ? "🚫" : quota.remaining <= 1 ? "⚠️" : "🎯"}
+                </span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: quota.remaining === 0 ? "#DC2626" : quota.remaining <= 1 ? "#D97706" : "#0369A1" }}>
+                    {quota.isMonthly
+                      ? `Còn ${quota.remaining === -1 ? "∞" : quota.remaining} / ${quota.quota} lần thi tháng này`
+                      : `Còn ${quota.remaining} / ${quota.quota} lần thi miễn phí`}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
+                    {quota.remaining === 0 && !quota.isMonthly && t("quota_free")}
+                    {quota.remaining === 0 && quota.isMonthly && quota.resetDate && `Reset vào ${new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(quota.resetDate))}`}
+                    {quota.remaining > 0 && !quota.isMonthly && "Miễn phí · Mua khoá học để thi không giới hạn hàng tháng"}
+                    {quota.remaining > 0 && quota.isMonthly && `Gói ${quota.packageType} · ${quota.isMonthly ? "Reset đầu tháng" : ""}`}
+                  </div>
+                </div>
+                {quota.remaining === 0 && !quota.isMonthly && (
+                  <Link href="/courses" style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: "#1565C0", padding: "6px 12px", borderRadius: 8, textDecoration: "none", whiteSpace: "nowrap" }}>
+                    {t("buy_course")}
+                  </Link>
+                )}
+              </div>
+            )}
+            <button
+              onClick={handleStart}
+              disabled={quota?.isLimited && quota.remaining === 0}
+              style={{
+                width: "100%", padding: "18px 0", borderRadius: 12, border: "none",
+                cursor: quota?.isLimited && quota.remaining === 0 ? "not-allowed" : "pointer",
+                background: quota?.isLimited && quota.remaining === 0 ? "#9CA3AF" : MLS_NAVY,
+                color: "#fff", fontSize: 18, fontWeight: 700,
+                boxShadow: quota?.isLimited && quota.remaining === 0 ? "none" : `0 4px 16px rgba(21,101,192,0.4)`,
+              }}
+            >
+              {quota?.isLimited && quota.remaining === 0
+                ? t("no_more_attempts")
+                : attempts && attempts.length > 0 ? t("restart_quiz") : t("start_quiz")}
+            </button>
+          </div>
         ) : (
           <div style={{ textAlign: "center", padding: "24px 0" }}>
-            <p style={{ color: "#6B7280", marginBottom: 16 }}>Bạn cần đăng nhập để làm bài kiểm tra</p>
+            <p style={{ color: "#6B7280", marginBottom: 16 }}>{t("login_required")}</p>
             <Link href="/login" style={{
               display: "inline-block", padding: "14px 40px", borderRadius: 10,
               background: MLS_NAVY, color: "#fff", textDecoration: "none",
               fontSize: 16, fontWeight: 600,
             }}>
-              Đăng nhập
+              {t("login_btn")}
             </Link>
           </div>
         )}

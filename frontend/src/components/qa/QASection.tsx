@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   useGetCommentsQuery,
   useCreateCommentMutation,
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function QASection({ lessonId, sessionId }: Props) {
+  const t = useTranslations("qa_section");
   const [content, setContent] = useState("");
   const [cursor, setCursor] = useState<string | undefined>(undefined);
 
@@ -41,7 +43,7 @@ export default function QASection({ lessonId, sessionId }: Props) {
   return (
     <section className="mt-8">
       <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">
-        Hỏi &amp; Đáp ({items.length})
+        {t("title")} ({items.length})
       </h2>
 
       {/* Compose box */}
@@ -49,7 +51,7 @@ export default function QASection({ lessonId, sessionId }: Props) {
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Đặt câu hỏi hoặc chia sẻ ghi chú…"
+          placeholder={t("placeholder")}
           rows={3}
           className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
@@ -59,18 +61,16 @@ export default function QASection({ lessonId, sessionId }: Props) {
             disabled={isPosting || !content.trim()}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
           >
-            {isPosting ? "Đang gửi…" : "Gửi câu hỏi"}
+            {isPosting ? t("submitting") : t("submit")}
           </button>
         </div>
       </form>
 
       {/* Comments */}
       {isLoading ? (
-        <p className="text-sm text-gray-400">Đang tải…</p>
+        <p className="text-sm text-gray-400">{t("loading")}</p>
       ) : items.length === 0 ? (
-        <p className="text-sm text-gray-400">
-          Chưa có câu hỏi nào. Hãy đặt câu hỏi đầu tiên!
-        </p>
+        <p className="text-sm text-gray-400">{t("empty")}</p>
       ) : (
         <ul className="space-y-4">
           {items.map((comment: LessonCommentDto) => (
@@ -92,7 +92,7 @@ export default function QASection({ lessonId, sessionId }: Props) {
             disabled={isFetching}
             className="text-sm text-blue-500 hover:text-blue-600 font-medium disabled:opacity-50"
           >
-            {isFetching ? "Đang tải…" : "Xem thêm"}
+            {isFetching ? t("loading") : t("load_more")}
           </button>
         </div>
       )}

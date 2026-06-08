@@ -1,5 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
+using MLS.API.Resources;
 using MLS.Application.CMS.Courses.Commands;
 using MLS.Application.CMS.Courses.Queries;
 using MLS.API.Filters;
@@ -17,6 +19,15 @@ public record CreateCourseRequest(
     string? BannerUrl = null, string? Tags = null, int? Duration = null,
     DateTime? StartDate = null, DateTime? EndDate = null, bool CompletionRequired = false,
     string? Outcomes = null, string? Requirements = null, string? TargetAudience = null);
+
+// III-5: Translation upsert DTO
+public record UpsertTranslationRequest(
+    string? Title,
+    string? ShortDescription,
+    string? Description,
+    string? Outcomes = null,
+    string? Requirements = null,
+    string? TargetAudience = null);
 public record UpdateCourseRequest(
     string Title, string? Description, int Level, Guid? TeacherId,
     decimal Price = 0, decimal? DiscountPrice = null, DateTime? DiscountEndsAt = null,
@@ -39,7 +50,11 @@ public record UpdateLearningLevelRequest(string Name, string? Description, int O
 [ApiController]
 [Route("api/v1/admin/cms")]
 [AuthorizeRoles("Admin", "SuperAdmin", "ContentManager", "Teacher")]
-public class AdminCmsController(IMediator mediator, ITenantContext tenantContext, IStorageService storage) : ControllerBase
+public class AdminCmsController(
+    IMediator mediator,
+    ITenantContext tenantContext,
+    IStorageService storage,
+    IStringLocalizer<SharedResource> loc) : ControllerBase
 {
     private Guid CurrentUserId => Guid.Parse(User.FindFirst("sub")?.Value
         ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
@@ -65,6 +80,18 @@ public class AdminCmsController(IMediator mediator, ITenantContext tenantContext
     {
         var result = await mediator.Send(new GetCourseDetailQuery(id), ct);
         return Ok(result);
+    }
+
+    // III-5: Upsert course translation
+    [HttpPut("courses/{id:guid}/translations/{locale}")]
+    [AuthorizeRoles("Admin", "SuperAdmin", "Teacher")]
+    public async Task<IActionResult> UpsertCourseTranslation(
+        Guid id, string locale, [FromBody] UpsertTranslationRequest req, CancellationToken ct)
+    {
+        await mediator.Send(new UpsertCourseTranslationCommand(
+            id, locale, req.Title, req.ShortDescription, req.Description,
+            req.Outcomes, req.Requirements, req.TargetAudience), ct);
+        return NoContent();
     }
 
     [HttpPost("courses")]
@@ -275,14 +302,14 @@ public class AdminCmsController(IMediator mediator, ITenantContext tenantContext
     public async Task<IActionResult> UploadThumbnail(IFormFile file, CancellationToken ct)
     {
         if (file is null || file.Length == 0)
-            return BadRequest(new { error = "No file uploaded." });
+            return BadRequest(new { error = loc["NoFileUploaded"].Value });
 
         string[] allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
         if (!allowed.Contains(file.ContentType))
-            return BadRequest(new { error = "Only JPEG, PNG, WebP, or GIF images are allowed." });
+            return BadRequest(new { error = loc["ImageOnlyAllowed"].Value });
 
         if (file.Length > 5 * 1024 * 1024)
-            return BadRequest(new { error = "File size must not exceed 5MB." });
+            return BadRequest(new { error = loc["FileSizeExceeded5MB"].Value });
 
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (string.IsNullOrEmpty(ext)) ext = ".jpg";

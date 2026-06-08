@@ -7,15 +7,16 @@ import AppShell from "../_components/AppShell";
 import { useListQuizzesQuery, useGetQuizLeaderboardQuery } from "@/lib/features/quiz/quizApi";
 import { useAppSelector } from "@/lib/hooks";
 import type { RootState } from "@/lib/store";
+import { useTranslations } from "next-intl";
 
 /* ── Constants ──────────────────────────────────────────────────────────────── */
 
 const EXAM_MODE_TABS = [
-  { key: "all",      label: "Tất cả",   color: "#1565C0" },
+  { key: "all",      label: "tab_all",  color: "#1565C0" },
   { key: "Standard", label: "Standard", color: "#6366F1" },
   { key: "OPIC",     label: "OPIC",     color: "#16A34A" },
   { key: "VSTEP",    label: "VSTEP",    color: "#EA580C" },
-  { key: "Live",     label: "Thi Live", color: "#DC2626" },
+  { key: "Live",     label: "tab_live", color: "#DC2626" },
 ];
 
 const EXAM_MODE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -25,22 +26,7 @@ const EXAM_MODE_COLORS: Record<string, { bg: string; text: string }> = {
   Live:     { bg: "#FFF1F2", text: "#BE123C" },
 };
 
-const QUIZ_TYPE_LABELS: Record<string, string> = {
-  PlacementTest:   "Xếp lớp",
-  PracticeQuiz:    "Luyện tập",
-  SegmentQuiz:     "Theo bài học",
-  AdaptiveQuiz:    "Thích nghi",
-  MockTest:        "Thi thử",
-  OPICMockTest:    "OPIC Mock Test",
-  RealtimeQuiz:    "Thi Live",
-  SpeakingTest:    "Kiểm tra nói",
-  WritingTest:     "Kiểm tra viết",
-  VSTEPMockTest:   "VSTEP Mock",
-  VSTEPListening:  "VSTEP Nghe",
-  VSTEPReading:    "VSTEP Đọc",
-  VSTEPWriting:    "VSTEP Viết",
-  VSTEPSpeaking:   "VSTEP Nói",
-};
+
 
 const AVATAR_COLORS = ["#1565C0", "#7B1FA2", "#2E7D32", "#C62828", "#E65100", "#00695C", "#5D4037", "#283593", "#AD1457", "#00838F"];
 
@@ -64,6 +50,23 @@ function QuizCard({ quiz, onClick }: {
   quiz: { id: string; title: string; description: string | null; quizType: string; examMode: string; questionCount: number; passingScore: number; timeLimitSeconds: number | null; };
   onClick: () => void;
 }) {
+  const t = useTranslations("exam");
+  const QUIZ_TYPE_LABELS: Record<string, string> = {
+    PlacementTest:   t("type_placement"),
+    PracticeQuiz:    t("type_practice"),
+    SegmentQuiz:     t("type_lesson"),
+    AdaptiveQuiz:    t("type_adaptive"),
+    MockTest:        t("type_mocktest"),
+    OPICMockTest:    "OPIC Mock Test",
+    RealtimeQuiz:    t("type_live"),
+    SpeakingTest:    t("type_speaking"),
+    WritingTest:     t("type_writing"),
+    VSTEPMockTest:   "VSTEP Mock",
+    VSTEPListening:  "VSTEP Nghe",
+    VSTEPReading:    "VSTEP Đọc",
+    VSTEPWriting:    "VSTEP Viết",
+    VSTEPSpeaking:   "VSTEP Nói",
+  };
   const modeColor = EXAM_MODE_COLORS[quiz.examMode] ?? { bg: "#F3F4F6", text: "#374151" };
   const typeLabel = QUIZ_TYPE_LABELS[quiz.quizType] ?? quiz.quizType;
   const mins = quiz.timeLimitSeconds ? Math.ceil(quiz.timeLimitSeconds / 60) : null;
@@ -98,8 +101,8 @@ function QuizCard({ quiz, onClick }: {
             fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 99,
             background: modeColor.bg, color: modeColor.text,
           }}>{typeLabel}</span>
-          <span style={{ fontSize: 12, color: "#9CA3AF" }}>{quiz.questionCount} câu</span>
-          {mins && <span style={{ fontSize: 12, color: "#9CA3AF" }}>· {mins} phút</span>}
+          <span style={{ fontSize: 12, color: "#9CA3AF" }}>{t("questions", { n: quiz.questionCount })}</span>
+          {mins && <span style={{ fontSize: 12, color: "#9CA3AF" }}>· {t("minutes", { n: mins })}</span>}
           <span style={{ fontSize: 12, color: "#9CA3AF" }}>· Đạt {quiz.passingScore}%</span>
         </div>
         {quiz.description && (
@@ -119,7 +122,7 @@ function QuizCard({ quiz, onClick }: {
           color: "white", fontSize: 12, fontWeight: 600,
         }}
       >
-        {quiz.quizType === "RealtimeQuiz" ? "Tham gia" : "Làm bài"}
+        {quiz.quizType === "RealtimeQuiz" ? t("join") : t("take_quiz")}
       </button>
     </div>
   );
@@ -127,6 +130,7 @@ function QuizCard({ quiz, onClick }: {
 
 /* ── Leaderboard ────────────────────────────────────────────────────────────── */
 function Leaderboard() {
+  const t = useTranslations("exam");
   const [bxhTab, setBxhTab] = useState<"week" | "month" | "year">("week");
   const { data: entries, isLoading, isFetching } = useGetQuizLeaderboardQuery({ period: bxhTab, limit: 10 });
 
@@ -139,20 +143,20 @@ function Leaderboard() {
     }}>
       {/* Header */}
       <div style={{ padding: "14px 16px 0", borderBottom: "1px solid #f3f4f6" }}>
-        <h3 style={{ fontSize: 14, fontWeight: 700, color: "#111827", margin: "0 0 10px" }}>🏆 Bảng xếp hạng</h3>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: "#111827", margin: "0 0 10px" }}>{t("leaderboard")}</h3>
         <div style={{ display: "flex", gap: 0, marginBottom: 0 }}>
-          {(["week", "month", "year"] as const).map((t) => (
+          {(["week", "month", "year"] as const).map((tab) => (
             <button
-              key={t}
-              onClick={() => setBxhTab(t)}
+              key={tab}
+              onClick={() => setBxhTab(tab)}
               style={{
                 flex: 1, padding: "6px 4px", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600,
                 background: "transparent",
-                color: bxhTab === t ? "#1565C0" : "#9CA3AF",
-                borderBottom: bxhTab === t ? "2px solid #1565C0" : "2px solid transparent",
+                color: bxhTab === tab ? "#1565C0" : "#9CA3AF",
+                borderBottom: bxhTab === tab ? "2px solid #1565C0" : "2px solid transparent",
               }}
             >
-              {t === "week" ? "BXH Tuần" : t === "month" ? "BXH Tháng" : "BXH Năm"}
+              {tab === "week" ? t("lb_week") : tab === "month" ? t("lb_month") : t("lb_year")}
             </button>
           ))}
         </div>
@@ -165,9 +169,9 @@ function Leaderboard() {
           display: "grid", gridTemplateColumns: "28px 1fr 52px 36px",
           padding: "4px 12px", gap: 6,
         }}>
-          <span style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600 }}>XH</span>
-          <span style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600 }}>Học viên</span>
-          <span style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600, textAlign: "right" }}>Đạt</span>
+          <span style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600 }}>{t("lb_rank")}</span>
+          <span style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600 }}>{t("lb_student")}</span>
+          <span style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600, textAlign: "right" }}>{t("lb_pass")}</span>
           <span style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600, textAlign: "right" }}>%</span>
         </div>
 
@@ -177,7 +181,7 @@ function Leaderboard() {
           </div>
         ) : !entries || entries.length === 0 ? (
           <div style={{ padding: "24px 12px", textAlign: "center", color: "#9CA3AF", fontSize: 12 }}>
-            Chưa có dữ liệu xếp hạng
+          {t("lb_empty")}
           </div>
         ) : (
           entries.map((entry) => {
@@ -242,6 +246,7 @@ function Leaderboard() {
 /* ── Main Page ──────────────────────────────────────────────────────────────── */
 export default function ThiOnlinePage() {
   const router = useRouter();
+  const t = useTranslations("exam");
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
 
@@ -300,7 +305,7 @@ export default function ThiOnlinePage() {
             borderBottom: "1px solid #e5e7eb", position: "sticky", top: 0, zIndex: 20,
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <h1 style={{ fontSize: 18, fontWeight: 700, color: "#111827", margin: 0 }}>Thi Online</h1>
+              <h1 style={{ fontSize: 18, fontWeight: 700, color: "#111827", margin: 0 }}>{t("title")}</h1>
               <div style={{ flex: 1 }} />
               {/* Search */}
               <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#F3F4F6", borderRadius: 8, padding: "6px 12px" }}>
@@ -310,7 +315,7 @@ export default function ThiOnlinePage() {
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="Tìm bài thi..."
+                  placeholder={t("search_placeholder")}
                   style={{ border: "none", background: "transparent", outline: "none", fontSize: 13, color: "#111827", width: 160 }}
                 />
               </div>
@@ -330,7 +335,7 @@ export default function ThiOnlinePage() {
                     transition: "all 0.15s",
                   }}
                 >
-                  {tab.label}
+                {tab.key === "all" ? t("tab_all") : tab.key === "Live" ? t("tab_live") : tab.label}
                 </button>
               ))}
             </div>
@@ -346,8 +351,8 @@ export default function ThiOnlinePage() {
             ) : quizzes.length === 0 ? (
               <div style={{ padding: "40px 20px", textAlign: "center", color: "#9CA3AF" }}>
                 <p style={{ fontSize: 32, margin: "0 0 8px" }}>📋</p>
-                <p style={{ fontSize: 14, fontWeight: 500 }}>Chưa có bài thi nào</p>
-                <p style={{ fontSize: 12 }}>Thử chọn danh mục khác hoặc tìm kiếm</p>
+                <p style={{ fontSize: 14, fontWeight: 500 }}>{t("empty")}</p>
+                <p style={{ fontSize: 12 }}>{t("empty_hint")}</p>
               </div>
             ) : (
               quizzes.map((quiz) => (
@@ -363,7 +368,7 @@ export default function ThiOnlinePage() {
           {/* Count */}
           {!isLoading && quizzes.length > 0 && (
             <p style={{ fontSize: 12, color: "#9CA3AF", textAlign: "center", padding: "8px 0 16px" }}>
-              {quizzes.length} bài thi
+              {t("count", { count: quizzes.length })}
             </p>
           )}
         </main>

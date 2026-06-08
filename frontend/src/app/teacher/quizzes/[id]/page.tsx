@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   useGetQuizQuery,
   useUpdateQuizMutation,
@@ -31,14 +32,13 @@ const MLS_NAVY = "#1565C0";
 const MLS_RED = "#e5173f";
 
 const OPIC_EXAM_MODE_TAGS = ["", "orientation", "describe", "routine", "experience", "roleplay", "question-asking"];
-const OPIC_EXAM_MODE_LABELS: Record<string, string> = {
-  "":                "— Chọn loại —",
-  orientation:       "Giới thiệu bản thân",
-  describe:          "Mô tả (Describe)",
-  routine:           "Thói quen (Routine)",
-  experience:        "Trải nghiệm (Experience)",
-  roleplay:          "Nhập vai (Role Play)",
-  "question-asking": "Đặt câu hỏi (Q.Asking)",
+const OPIC_EXAM_MODE_KEY_MAP: Record<string, string> = {
+  orientation:       "self_intro",
+  describe:          "describe",
+  routine:           "routine",
+  experience:        "experience",
+  roleplay:          "roleplay",
+  "question-asking": "qasking",
 };
 
 const OPIC_TYPE_COLOR: Record<string, string> = {
@@ -69,6 +69,8 @@ function OPICQuestionModal({
   onClose: () => void;
   onSave: (patch: { audioUrl?: string; speakingTimeLimitSec?: number; examModeTag?: string; audioPlayLimit?: number }) => void;
 }) {
+  const t = useTranslations("teacher_quiz_detail");
+  const tCombo = useTranslations("opic_combo_labels");
   const [audioUrl, setAudioUrl] = useState(q.audioUrl ?? "");
   const [timeLimitSec, setTimeLimitSec] = useState(q.speakingTimeLimitSec ?? 120);
   const [examModeTag, setExamModeTag] = useState(q.examModeTag ?? "");
@@ -78,7 +80,7 @@ function OPICQuestionModal({
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }}>
       <div style={{ background: "#fff", borderRadius: 16, padding: 28, width: 480, maxWidth: "92vw" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <h3 style={{ fontSize: 17, fontWeight: 700, color: "#111827", margin: 0 }}>Cài đặt OPIC cho câu hỏi</h3>
+          <h3 style={{ fontSize: 17, fontWeight: 700, color: "#111827", margin: 0 }}>{t("opic_modal_title")}</h3>
           <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 20, color: "#9CA3AF" }}>x</button>
         </div>
         <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 16, padding: "10px 14px", background: "#F9FAFB", borderRadius: 8 }}>
@@ -87,18 +89,18 @@ function OPICQuestionModal({
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
-              Loại câu OPIC
+              {t("opic_field_type")}
             </label>
             <select value={examModeTag} onChange={(e) => setExamModeTag(e.target.value)}
               style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 14, background: "#fff" }}>
-              {OPIC_EXAM_MODE_TAGS.map((t) => (
-                <option key={t} value={t}>{OPIC_EXAM_MODE_LABELS[t]}</option>
+              {OPIC_EXAM_MODE_TAGS.map((tag) => (
+                <option key={tag} value={tag}>{tag === "" ? t("opic_type_default") : tCombo(OPIC_EXAM_MODE_KEY_MAP[tag] ?? "describe")}</option>
               ))}
             </select>
           </div>
           <div>
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
-              URL audio (MP3)
+              {t("opic_field_audio")}
             </label>
             <input value={audioUrl} onChange={(e) => setAudioUrl(e.target.value)}
               placeholder="https://..."
@@ -107,7 +109,7 @@ function OPICQuestionModal({
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
-              Thời gian trả lời (giây)
+              {t("opic_field_time")}
               </label>
               <input type="number" min={15} max={300} value={timeLimitSec}
                 onChange={(e) => setTimeLimitSec(parseInt(e.target.value) || 120)}
@@ -115,13 +117,13 @@ function OPICQuestionModal({
             </div>
             <div>
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
-                Số lần nghe audio
+                {t("opic_field_plays")}
               </label>
               <select value={playLimit} onChange={(e) => setPlayLimit(parseInt(e.target.value))}
                 style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 14, background: "#fff" }}>
-                <option value={1}>1 lần</option>
-                <option value={2}>2 lần</option>
-                <option value={3}>3 lần</option>
+                <option value={1}>1</option>
+                <option value={2}>2</option>
+                <option value={3}>3</option>
               </select>
             </div>
           </div>
@@ -129,11 +131,11 @@ function OPICQuestionModal({
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 22 }}>
           <button onClick={onClose}
             style={{ padding: "9px 20px", borderRadius: 8, border: "1px solid #D1D5DB", background: "#fff", cursor: "pointer", fontSize: 13, color: "#374151" }}>
-            Hủy
+            {t("btn_cancel")}
           </button>
           <button onClick={() => onSave({ audioUrl: audioUrl || undefined, speakingTimeLimitSec: timeLimitSec, examModeTag: examModeTag || undefined, audioPlayLimit: playLimit })}
             style={{ padding: "9px 20px", borderRadius: 8, border: "none", background: MLS_NAVY, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
-            Lưu cài đặt
+            {t("btn_save_opic")}
           </button>
         </div>
       </div>
@@ -142,6 +144,8 @@ function OPICQuestionModal({
 }
 
 export default function EditQuizPage() {
+  const t = useTranslations("teacher_quiz_detail");
+  const tCombo = useTranslations("opic_combo_labels");
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
@@ -185,7 +189,7 @@ export default function EditQuizPage() {
 
   // Quiz type options: loaded from DB config API, fallback to portalConfig static map
   const quizTypeOptions = allQuizTypes.length > 0
-    ? allQuizTypes.map((t) => ({ value: t.value, label: t.label }))
+    ? allQuizTypes.map((qt) => ({ value: qt.value, label: qt.label }))
     : Object.entries(QUIZ_TYPE_LABEL).map(([value, label]) => ({ value, label }));
 
   function fieldVal<K extends keyof typeof form>(key: K, fallback: unknown) {
@@ -204,9 +208,9 @@ export default function EditQuizPage() {
         passingScore: form.passingScore !== undefined ? parseFloat(form.passingScore) : undefined,
       }).unwrap();
       setForm({});
-      showMsg("success", "Đã lưu thay đổi");
+      showMsg("success", t("toast_save_ok"));
     } catch {
-      showMsg("error", "Lưu thất bại");
+      showMsg("error", t("toast_save_fail"));
     }
   }
 
@@ -215,9 +219,9 @@ export default function EditQuizPage() {
     try {
       await addQuestion({ quizId: id, questionId: qId, displayOrder: (quiz.questions?.length ?? 0) + 1 }).unwrap();
       refetch();
-      showMsg("success", "Đã thêm câu hỏi");
+      showMsg("success", t("toast_add_q_ok"));
     } catch {
-      showMsg("error", "Thêm câu hỏi thất bại");
+      showMsg("error", t("toast_add_q_fail"));
     }
   }
 
@@ -225,9 +229,9 @@ export default function EditQuizPage() {
     try {
       await removeQuestion({ quizId: id, questionId }).unwrap();
       refetch();
-      showMsg("success", "Đã xóa câu hỏi");
+      showMsg("success", t("toast_delete_q_ok"));
     } catch {
-      showMsg("error", "Xóa thất bại");
+      showMsg("error", t("toast_delete_q_fail"));
     }
   }
 
@@ -251,20 +255,20 @@ export default function EditQuizPage() {
       }).unwrap();
       refetch();
       setOpicEditQ(null);
-      showMsg("success", "Đã lưu cài đặt OPIC");
+      showMsg("success", t("toast_opic_ok"));
     } catch {
-      showMsg("error", "Cập nhật thất bại");
+      showMsg("error", t("toast_opic_fail"));
     }
   }
 
   async function handlePublish() {
-    try { await publishQuiz(id).unwrap(); showMsg("success", "Đã xuất bản"); refetch(); }
-    catch { showMsg("error", "Xuất bản thất bại"); }
+    try { await publishQuiz(id).unwrap(); showMsg("success", t("toast_publish_ok")); refetch(); }
+    catch { showMsg("error", t("toast_publish_fail")); }
   }
 
   async function handleArchive() {
-    try { await archiveQuiz(id).unwrap(); showMsg("success", "Đã lưu trữ"); refetch(); }
-    catch { showMsg("error", "Thao tác thất bại"); }
+    try { await archiveQuiz(id).unwrap(); showMsg("success", t("toast_archive_ok")); refetch(); }
+    catch { showMsg("error", t("toast_action_fail")); }
   }
 
   if (isLoading) {
@@ -272,12 +276,12 @@ export default function EditQuizPage() {
       <div style={{ padding: 32, textAlign: "center", color: "#9CA3AF" }}>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         <div style={{ width: 40, height: 40, border: "4px solid #E5E7EB", borderTopColor: MLS_NAVY, borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 16px" }} />
-        Đang tải...
+        {t("loading")}
       </div>
     );
   }
 
-  if (!quiz) return <div style={{ padding: 32, color: "#6B7280" }}>Không tìm thấy quiz</div>;
+  if (!quiz) return <div style={{ padding: 32, color: "#6B7280" }}>{t("not_found")}</div>;
 
   const currentlyInQuiz = new Set(quiz.questions.map((q) => q.questionId));
 
@@ -291,10 +295,10 @@ export default function EditQuizPage() {
   }
 
   const tabs: { key: TabType; label: string }[] = [
-    { key: "settings",  label: "Cài đặt" },
-    { key: "questions", label: `Câu hỏi (${quiz.questions.length})` },
-    ...(isOpicQuiz  ? [{ key: "opic"     as TabType, label: "⚙ Cài đặt OPIC" }]    : []),
-    ...(isVstepQuiz ? [{ key: "passages" as TabType, label: `📖 Đoạn văn / Audio (${passages.length})` }] : []),
+    { key: "settings",  label: t("tab_settings") },
+    { key: "questions", label: t("tab_questions", { n: quiz.questions.length }) },
+    ...(isOpicQuiz  ? [{ key: "opic"     as TabType, label: t("tab_opic") }]    : []),
+    ...(isVstepQuiz ? [{ key: "passages" as TabType, label: t("tab_passages", { n: passages.length }) }] : []),
   ];
 
   return (
@@ -302,15 +306,15 @@ export default function EditQuizPage() {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
           <Link href="/teacher/quizzes" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
-            ← Quay lại danh sách
+            ← {t("back")}
           </Link>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#111827" }}>{quiz.title}</h1>
-          <p style={{ fontSize: 13, color: "#9CA3AF" }}>{quiz.questions.length} câu hỏi · {quiz.quizType}</p>
+          <p style={{ fontSize: 13, color: "#9CA3AF" }}>{quiz.questions.length} · {quiz.quizType}</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          {quiz.status === "Draft"     && <button onClick={handlePublish} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #16A34A", color: "#16A34A", background: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13 }}>Xuất bản</button>}
-          {quiz.status === "Published" && <button onClick={handleArchive} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #D97706", color: "#D97706", background: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13 }}>Lưu trữ</button>}
-          <Link href={`/teacher/quizzes/${id}/analytics`} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #7C3AED", color: "#7C3AED", textDecoration: "none", fontWeight: 600, fontSize: 13 }}>Thống kê</Link>
+          {quiz.status === "Draft"     && <button onClick={handlePublish} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #16A34A", color: "#16A34A", background: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13 }}>{t("btn_publish")}</button>}
+          {quiz.status === "Published" && <button onClick={handleArchive} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #D97706", color: "#D97706", background: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13 }}>{t("btn_archive")}</button>}
+          <Link href={`/teacher/quizzes/${id}/analytics`} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #7C3AED", color: "#7C3AED", textDecoration: "none", fontWeight: 600, fontSize: 13 }}>{t("btn_stats")}</Link>
         </div>
       </div>
 
@@ -321,13 +325,13 @@ export default function EditQuizPage() {
       )}
 
       <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "2px solid #E5E7EB" }}>
-        {tabs.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{
+        {tabs.map((tabItem) => (
+          <button key={tabItem.key} onClick={() => setTab(tabItem.key)} style={{
             padding: "10px 24px", border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14,
-            background: "transparent", color: tab === t.key ? MLS_NAVY : "#6B7280",
-            borderBottom: tab === t.key ? `2px solid ${MLS_NAVY}` : "none", marginBottom: -2,
+            background: "transparent", color: tab === tabItem.key ? MLS_NAVY : "#6B7280",
+            borderBottom: tab === tabItem.key ? `2px solid ${MLS_NAVY}` : "none", marginBottom: -2,
           }}>
-            {t.label}
+            {tabItem.label}
           </button>
         ))}
       </div>
@@ -336,7 +340,7 @@ export default function EditQuizPage() {
         <div style={{ background: "#fff", borderRadius: 16, padding: 28, boxShadow: "0 2px 12px rgba(0,0,0,0.07)", maxWidth: 680 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Tiêu đề</label>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>{t("field_title")}</label>
               <input
                 value={(fieldVal("title", quiz.title) as string)}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
@@ -344,7 +348,7 @@ export default function EditQuizPage() {
               />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Mô tả</label>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>{t("field_description")}</label>
               <textarea
                 value={(fieldVal("description", quiz.description ?? "") as string)}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
@@ -354,32 +358,32 @@ export default function EditQuizPage() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Loại quiz</label>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>{t("field_type")}</label>
                 <select value={(fieldVal("quizType", quiz.quizType) as string)}
                   onChange={(e) => setForm((f) => ({ ...f, quizType: e.target.value }))}
                   style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 14, background: "#fff" }}>
-                  {quizTypeOptions.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  {quizTypeOptions.map((qt) => <option key={qt.value} value={qt.value}>{qt.label}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Kỹ năng</label>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>{t("field_skill")}</label>
                 <select value={(fieldVal("skillType", quiz.skillType ?? "") as string)}
                   onChange={(e) => setForm((f) => ({ ...f, skillType: e.target.value }))}
                   style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 14, background: "#fff" }}>
-                  {SKILL_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  {SKILL_TYPES.map((skill) => <option key={skill.value} value={skill.value}>{skill.label}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Thời gian (phút)</label>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>{t("field_duration")}</label>
                 <input type="number" min="1"
                   value={(fieldVal("timeLimitSeconds", quiz.timeLimitSeconds ? Math.floor(quiz.timeLimitSeconds / 60) : "") as string | number)}
                   onChange={(e) => setForm((f) => ({ ...f, timeLimitSeconds: e.target.value }))}
-                  placeholder="Để trống = không giới hạn"
+                  placeholder={t("duration_ph")}
                   style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 14, boxSizing: "border-box" }}
                 />
               </div>
               <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Điểm đạt (%)</label>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>{t("field_pass_score")}</label>
                 <input type="number" min="0" max="100"
                   value={(fieldVal("passingScore", quiz.passingScore) as string | number)}
                   onChange={(e) => setForm((f) => ({ ...f, passingScore: e.target.value }))}
@@ -388,11 +392,11 @@ export default function EditQuizPage() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 24 }}>
-              {([["shuffleQuestions", "Trộn câu hỏi"], ["showCorrectAnswer", "Hiện đáp án"]] as const).map(([key, label]) => (
+              {([["shuffleQuestions", t("chk_random")], ["showCorrectAnswer", t("chk_show_answers")]] as const).map(([key, label]) => (
                 <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14 }}>
                   <input type="checkbox"
-                    checked={(fieldVal(key, quiz[key]) as boolean)}
-                    onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.checked }))}
+                    checked={(fieldVal(key as "shuffleQuestions" | "showCorrectAnswer", quiz[key as "shuffleQuestions" | "showCorrectAnswer"]) as boolean)}
+                    onChange={(e) => setForm((f) => ({ ...f, [key as string]: e.target.checked }))}
                     style={{ width: 16, height: 16, accentColor: MLS_NAVY }}
                   />
                   {label}
@@ -403,7 +407,7 @@ export default function EditQuizPage() {
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
             <button onClick={handleSaveSettings} disabled={updating}
               style={{ padding: "11px 28px", borderRadius: 10, border: "none", background: MLS_NAVY, color: "#fff", cursor: updating ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 14, opacity: updating ? 0.7 : 1 }}>
-              {updating ? "Đang lưu..." : "Lưu thay đổi"}
+              {updating ? t("btn_saving") : t("btn_save")}
             </button>
           </div>
         </div>
@@ -414,12 +418,12 @@ export default function EditQuizPage() {
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
             <button onClick={() => setShowAddModal(true)}
               style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: MLS_NAVY, color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14 }}>
-              + Thêm câu hỏi
+              {t("btn_add_question")}
             </button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {quiz.questions.length === 0 && (
-              <div style={{ textAlign: "center", padding: "40px 0", color: "#9CA3AF" }}>Chưa có câu hỏi nào</div>
+              <div style={{ textAlign: "center", padding: "40px 0", color: "#9CA3AF" }}>{t("questions_empty")}</div>
             )}
             {quiz.questions.map((q: QuizQuestionDto, i: number) => (
               <div key={q.linkId} style={{
@@ -440,7 +444,7 @@ export default function EditQuizPage() {
                     <span style={{ fontSize: 11, background: "#F3F4F6", borderRadius: 4, padding: "2px 8px", color: "#6B7280" }}>{q.score} pts</span>
                     {q.examModeTag && (
                       <span style={{ fontSize: 11, borderRadius: 4, padding: "2px 8px", fontWeight: 600, background: (OPIC_TYPE_COLOR[q.examModeTag] ?? "#6B7280") + "20", color: OPIC_TYPE_COLOR[q.examModeTag] ?? "#6B7280" }}>
-                        {OPIC_EXAM_MODE_LABELS[q.examModeTag] ?? q.examModeTag}
+                        {tCombo(OPIC_EXAM_MODE_KEY_MAP[q.examModeTag] ?? "describe")}
                       </span>
                     )}
                     {q.speakingTimeLimitSec && (
@@ -455,12 +459,12 @@ export default function EditQuizPage() {
                   {isOpicQuiz && (
                     <button onClick={() => { setOpicEditQ(q); setTab("opic"); }}
                       style={{ padding: "5px 10px", borderRadius: 6, border: `1px solid ${MLS_NAVY}`, color: MLS_NAVY, background: "transparent", cursor: "pointer", fontSize: 12 }}>
-                      Cài đặt OPIC
+                      {t("btn_opic_settings")}
                     </button>
                   )}
                   <button onClick={() => handleRemoveQuestion(q.questionId)}
                     style={{ padding: "5px 10px", borderRadius: 6, border: `1px solid ${MLS_RED}`, color: MLS_RED, background: "transparent", cursor: "pointer", fontSize: 12 }}>
-                    Xóa
+                    {t("btn_delete")}
                   </button>
                 </div>
               </div>
@@ -473,9 +477,9 @@ export default function EditQuizPage() {
         <div style={{ maxWidth: 760 }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
             {[
-              { label: "Tổng câu hỏi", value: quiz.questions.length,                          color: MLS_NAVY  },
-              { label: "Có audio",       value: quiz.questions.filter(q => q.audioUrl).length,   color: "#D97706" },
-              { label: "Đã gắn loại",          value: quiz.questions.filter(q => q.examModeTag).length, color: "#059669" },
+              { label: t("opic_stats_total"), value: quiz.questions.length,                          color: MLS_NAVY  },
+              { label: t("opic_stats_audio"),       value: quiz.questions.filter(q => q.audioUrl).length,   color: "#D97706" },
+              { label: t("opic_stats_typed"),          value: quiz.questions.filter(q => q.examModeTag).length, color: "#059669" },
             ].map(({ label, value, color }) => (
               <div key={label} style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
                 <div style={{ fontSize: 24, fontWeight: 800, color }}>{value}</div>
@@ -486,20 +490,20 @@ export default function EditQuizPage() {
 
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: "#111827", margin: 0 }}>Cấu hình theo loại câu</h2>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: "#111827", margin: 0 }}>{t("opic_config_heading")}</h2>
               <button onClick={() => setTab("questions")}
                 style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${MLS_NAVY}`, color: MLS_NAVY, background: "transparent", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                + Thêm câu hỏi
+                {t("btn_add_question")}
               </button>
             </div>
 
             {quiz.questions.length === 0 && (
-              <div style={{ textAlign: "center", padding: "32px 0", color: "#9CA3AF" }}>Chưa có câu hỏi nào.</div>
+              <div style={{ textAlign: "center", padding: "32px 0", color: "#9CA3AF" }}>{t("opic_empty")}</div>
             )}
 
             {Object.entries(opicGroups).map(([tag, questions]) => {
               const color = OPIC_TYPE_COLOR[tag] ?? "#6B7280";
-              const label = OPIC_EXAM_MODE_LABELS[tag] ?? tag;
+              const label = tCombo(OPIC_EXAM_MODE_KEY_MAP[tag] ?? "describe");
               return (
                 <div key={tag} style={{ marginBottom: 20 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -520,14 +524,14 @@ export default function EditQuizPage() {
                           <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                             {q.audioUrl
                               ? <span style={{ fontSize: 11, color: "#D97706" }}>audio</span>
-                              : <span style={{ fontSize: 11, color: "#9CA3AF" }}>Chưa có audio</span>
+                              : <span style={{ fontSize: 11, color: "#9CA3AF" }}>{t("opic_no_audio")}</span>
                             }
                             <span style={{ fontSize: 11, color: "#6B7280" }}>{q.speakingTimeLimitSec ?? 120}s</span>
                           </div>
                         </div>
                         <button onClick={() => setOpicEditQ(q)}
                           style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${color}`, color, background: "transparent", cursor: "pointer", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
-                          Cài đặt
+                          {t("btn_opic_settings")}
                         </button>
                       </div>
                     ))}
@@ -557,14 +561,14 @@ export default function EditQuizPage() {
           onCreatePassage={async (req) => {
             try {
               await createPassage({ quizId: id, ...req }).unwrap();
-              showMsg("success", "Đã tạo đoạn văn");
-            } catch { showMsg("error", "Tạo thất bại"); }
+              showMsg("success", t("toast_passage_create_ok"));
+            } catch { showMsg("error", t("toast_passage_create_fail")); }
           }}
           onDeletePassage={async (pgId) => {
             try {
               await deletePassage({ id: pgId, quizId: id }).unwrap();
-              showMsg("success", "Đã xóa");
-            } catch { showMsg("error", "Xóa thất bại"); }
+              showMsg("success", t("toast_passage_delete_ok"));
+            } catch { showMsg("error", t("toast_passage_delete_fail")); }
           }}
         />
       )}
@@ -573,10 +577,10 @@ export default function EditQuizPage() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
           <div style={{ background: "#fff", borderRadius: 16, padding: 28, width: "90%", maxWidth: 640, maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#111827" }}>Thêm từ ngân hàng câu hỏi</h3>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#111827" }}>{t("add_modal_title")}</h3>
               <button onClick={() => setShowAddModal(false)} style={{ padding: 6, border: "none", background: "none", cursor: "pointer", fontSize: 20, color: "#9CA3AF" }}>x</button>
             </div>
-            <input value={qSearch} onChange={(e) => setQSearch(e.target.value)} placeholder="Tìm kiếm câu hỏi..."
+            <input value={qSearch} onChange={(e) => setQSearch(e.target.value)} placeholder={t("search_ph")}
               style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 14, marginBottom: 12 }} />
             <div style={{ overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
               {(bankQuestions?.items ?? []).map((q: QuestionListItem) => {
@@ -591,11 +595,11 @@ export default function EditQuizPage() {
                       </div>
                     </div>
                     {inQuiz ? (
-                      <span style={{ fontSize: 12, color: "#16A34A", fontWeight: 600 }}>Đã thêm</span>
+                      <span style={{ fontSize: 12, color: "#16A34A", fontWeight: 600 }}>{t("btn_added")}</span>
                     ) : (
                       <button onClick={() => handleAddQuestion(q.id)}
                         style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: MLS_NAVY, color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                        Thêm
+                        {t("btn_add")}
                       </button>
                     )}
                   </div>
@@ -631,6 +635,7 @@ interface VSTEPPassagesPanelProps {
 }
 
 function VSTEPPassagesPanel({ quizId: _quizId, passages, questions, onCreatePassage, onDeletePassage }: VSTEPPassagesPanelProps) {
+  const t = useTranslations("teacher_quiz_detail");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     passageType: "reading" as "reading" | "listening",
@@ -671,20 +676,20 @@ function VSTEPPassagesPanel({ quizId: _quizId, passages, questions, onCreatePass
     <div style={{ maxWidth: 800 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", margin: 0 }}>Đoạn văn / Audio (PassageGroups)</h2>
-          <p style={{ fontSize: 13, color: "#6B7280", margin: "4px 0 0" }}>Nhóm câu hỏi Nghe/Đọc theo đoạn cho bài thi VSTEP</p>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", margin: 0 }}>{t("passage_heading")}</h2>
+          <p style={{ fontSize: 13, color: "#6B7280", margin: "4px 0 0" }}>{t("passage_subtitle")}</p>
         </div>
         <button onClick={() => setShowForm(true)}
           style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#1565C0", color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
-          + Thêm đoạn
+          {t("btn_add_passage")}
         </button>
       </div>
 
       {passages.length === 0 && !showForm && (
         <div style={{ textAlign: "center", padding: "48px 0", color: "#9CA3AF", background: "#F9FAFB", borderRadius: 12, border: "1px dashed #D1D5DB" }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>Chưa có đoạn văn nào</div>
-          <div style={{ fontSize: 13, marginTop: 4 }}>Thêm đoạn văn/audio và gán câu hỏi tương ứng</div>
+          <div style={{ fontSize: 15, fontWeight: 600 }}>{t("passage_empty")}</div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>{t("passage_empty_hint")}</div>
         </div>
       )}
 
@@ -733,7 +738,7 @@ function VSTEPPassagesPanel({ quizId: _quizId, passages, questions, onCreatePass
                 </div>
                 <button onClick={() => onDeletePassage(pg.id)}
                   style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid #FCA5A5", color: "#DC2626", background: "transparent", cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" }}>
-                  Xóa
+                  {t("btn_delete")}
                 </button>
               </div>
             </div>
@@ -743,22 +748,22 @@ function VSTEPPassagesPanel({ quizId: _quizId, passages, questions, onCreatePass
 
       {showForm && (
         <div style={{ marginTop: 16, background: "#fff", borderRadius: 14, border: "1px solid #C7D2FE", padding: 24 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginTop: 0, marginBottom: 18 }}>Thêm đoạn văn / Audio mới</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginTop: 0, marginBottom: 18 }}>{t("passage_add_title")}</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Loại đoạn</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>{t("passage_field_type")}</label>
               <select value={form.passageType} onChange={(e) => setForm((f) => ({ ...f, passageType: e.target.value as "reading" | "listening" }))}
                 style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 13, width: 220 }}>
-                <option value="reading">📖 Đọc (Reading)</option>
-                <option value="listening">🎧 Nghe (Listening)</option>
+                <option value="reading">📖 Reading</option>
+                <option value="listening">🎧 Listening</option>
               </select>
             </div>
 
             {form.passageType === "reading" && (
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Nội dung đoạn văn</label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>{t("passage_field_content")}</label>
                 <textarea value={form.passageText} onChange={(e) => setForm((f) => ({ ...f, passageText: e.target.value }))}
-                  rows={5} placeholder="Dán đoạn văn tiếng Anh vào đây..."
+                  rows={5} placeholder={t("passage_content_ph")}
                   style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
               </div>
             )}
@@ -766,22 +771,22 @@ function VSTEPPassagesPanel({ quizId: _quizId, passages, questions, onCreatePass
             {form.passageType === "listening" && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>URL file audio (MP3)</label>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>{t("passage_field_audio")}</label>
                   <input value={form.audioUrl} onChange={(e) => setForm((f) => ({ ...f, audioUrl: e.target.value }))}
-                    placeholder="https://cdn.example.com/audio.mp3"
+                    placeholder={t("passage_audio_ph")}
                     style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 13, boxSizing: "border-box" }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Số lần nghe</label>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>{t("passage_field_plays")}</label>
                   <select value={form.audioPlayLimit} onChange={(e) => setForm((f) => ({ ...f, audioPlayLimit: parseInt(e.target.value) }))}
                     style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 13 }}>
-                    <option value={1}>1 lần</option>
-                    <option value={2}>2 lần</option>
-                    <option value={3}>3 lần</option>
+                    <option value={1}>1</option>
+                    <option value={2}>2</option>
+                    <option value={3}>3</option>
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Thời gian chuẩn bị (giây)</label>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>{t("passage_field_prep_time")}</label>
                   <input type="number" min={0} max={60} value={form.preListenSeconds}
                     onChange={(e) => setForm((f) => ({ ...f, preListenSeconds: parseInt(e.target.value) || 20 }))}
                     style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 13, boxSizing: "border-box" }} />
@@ -791,12 +796,12 @@ function VSTEPPassagesPanel({ quizId: _quizId, passages, questions, onCreatePass
 
             <div>
               <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 8 }}>
-                Gán câu hỏi ({form.selectedQIds.length} đã chọn)
+                {t("passage_field_questions", { n: form.selectedQIds.length })}
               </label>
               <div style={{ maxHeight: 240, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6,
                 border: "1px solid #E5E7EB", borderRadius: 8, padding: 8 }}>
                 {questions.length === 0 && (
-                  <div style={{ color: "#9CA3AF", fontSize: 13, padding: 8 }}>Chưa có câu hỏi nào trong quiz</div>
+                  <div style={{ color: "#9CA3AF", fontSize: 13, padding: 8 }}>{t("passage_questions_empty")}</div>
                 )}
                 {questions.map((q) => (
                   <label key={q.questionId} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 10px",
@@ -818,11 +823,11 @@ function VSTEPPassagesPanel({ quizId: _quizId, passages, questions, onCreatePass
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
             <button onClick={() => setShowForm(false)}
               style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid #D1D5DB", color: "#374151", background: "#fff", cursor: "pointer", fontSize: 13 }}>
-              Hủy
+              {t("passage_btn_cancel")}
             </button>
             <button onClick={handleCreate}
               style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: "#1565C0", color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
-              Tạo đoạn văn
+              {t("passage_btn_create")}
             </button>
           </div>
         </div>

@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using MLS.API.Filters;
+using MLS.API.Resources;
 using MLS.Application.CMS.Sessions.Commands;
 using MLS.Application.CMS.Sessions.Queries;
 using MLS.Application.CMS.Segments.Commands;
@@ -74,7 +76,10 @@ public record UpdateLearningAssetRequest(
 [ApiController]
 [Route("api/v1/admin/cms")]
 [AuthorizeRoles("Admin", "SuperAdmin", "ContentManager", "Teacher")]
-public class AdminCmsSessionsController(IMediator mediator, ITenantContext tenantContext) : ControllerBase
+public class AdminCmsSessionsController(
+    IMediator mediator,
+    ITenantContext tenantContext,
+    IStringLocalizer<SharedResource> loc) : ControllerBase
 {
     // ── Sessions ──────────────────────────────────────────────────────────────
 
@@ -147,7 +152,7 @@ public class AdminCmsSessionsController(IMediator mediator, ITenantContext tenan
     public async Task<IActionResult> UploadSessionVideo(Guid sessionId, IFormFile file, CancellationToken ct)
     {
         if (file == null || file.Length == 0)
-            return BadRequest(new { error = "No file provided." });
+            return BadRequest(new { error = loc["NoFileUploaded"].Value });
 
         await using var stream = file.OpenReadStream();
         var id = await mediator.Send(new CreateSessionVideoAssetCommand(

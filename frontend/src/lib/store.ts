@@ -36,6 +36,7 @@ import { supportChatApi } from "./features/chat/supportChatApi";
 import { lessonCommentsApi } from "./features/qa/lessonCommentsApi";
 import { notificationsApi } from "./features/notifications/notificationsApi";
 import { shippingApi } from "./features/shipping/shippingApi";
+import notificationReducer from "./features/notifications/notificationSlice";
 
 export const store = configureStore({
   reducer: {
@@ -76,6 +77,7 @@ export const store = configureStore({
     [lessonCommentsApi.reducerPath]: lessonCommentsApi.reducer,
     [notificationsApi.reducerPath]: notificationsApi.reducer,
     [shippingApi.reducerPath]: shippingApi.reducer,
+    notification: notificationReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()

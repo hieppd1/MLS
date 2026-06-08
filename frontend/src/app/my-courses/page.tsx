@@ -9,7 +9,8 @@ import {
   useGetPublicCoursesQuery,
   type PublicCourseListItem,
 } from "@/lib/features/courses/coursesApi";
-import MessagesSidebar from "@/app/_components/MessagesSidebar";
+import AppShell from "@/app/_components/AppShell";
+import { useTranslations } from "next-intl";
 
 /* ═══════════════════════════════════════════════════════════════
    CONSTANTS
@@ -19,7 +20,7 @@ const LEVEL_LABELS: Record<number, string> = {
   4: "Trung cấp", 5: "Trung cao", 6: "Nâng cao",
 };
 
-const LEFT_NAV = [
+const _LEFT_NAV_REMOVED = [
   { id: "new",       label: "Bài học mới",       href: "/my-lesson",  requireAuth: false,
     icon: <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg> },
   { id: "enrolled",  label: "Khoá đã kích hoạt", href: "/my-courses", requireAuth: true,
@@ -36,9 +37,7 @@ const LEFT_NAV = [
     icon: <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg> },
 ];
 
-/* ═══════════════════════════════════════════════════════════════
-   MOCK CHAT DATA
-═══════════════════════════════════════════════════════════════ */
+/* ══ dead code — appshell provides real chat ══ */
 interface MockChat {
   id: string; name: string; init: string; color: string;
   lastMsg: string; time: string; unread: number; online: boolean;
@@ -90,7 +89,11 @@ function ChatItem({ chat, selected, onClick }: { chat: MockChat; selected: boole
    COURSE CARD
 ═══════════════════════════════════════════════════════════════ */
 function CourseCard({ course }: { course: PublicCourseListItem }) {
-  const lvl = LEVEL_LABELS[course.level] ?? `Cấp ${course.level}`;
+  const t = useTranslations("my_courses");
+  const tLevels = useTranslations("level_labels");
+  const lvl = course.level >= 1 && course.level <= 6
+    ? tLevels(String(course.level) as '1')
+    : tLevels("fallback", { n: course.level });
   return (
     <Link href={`/courses/${course.id}`} style={{ textDecoration: "none" }}>
       <div style={{
@@ -114,23 +117,23 @@ function CourseCard({ course }: { course: PublicCourseListItem }) {
           </div>
           <div style={{ position: "absolute", top: 8, right: 8, background: "#16A34A", borderRadius: 99, padding: "2px 8px", display: "flex", alignItems: "center", gap: 4 }}>
             <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#fff" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-            <span style={{ fontSize: 10, color: "#fff", fontWeight: 700 }}>Đang học</span>
+            <span style={{ fontSize: 10, color: "#fff", fontWeight: 700 }}>{t("badge_enrolled")}</span>
           </div>
         </div>
         {/* Body */}
         <div style={{ padding: "12px 14px 14px" }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", lineHeight: 1.4, marginBottom: 8, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{course.title}</p>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: 11, color: "#6B7280" }}>{course.moduleCount} chương</span>
+            <span style={{ fontSize: 11, color: "#6B7280" }}>{t("chapters", { count: course.moduleCount })}</span>
             <span style={{ fontSize: 11, color: "#D1D5DB" }}>•</span>
-            <span style={{ fontSize: 11, color: "#6B7280" }}>{course.sessionCount} bài học</span>
+            <span style={{ fontSize: 11, color: "#6B7280" }}>{t("lessons", { count: course.sessionCount })}</span>
           </div>
           <div style={{ marginTop: 12 }}>
             <div style={{ height: 6, background: "#E5E7EB", borderRadius: 99, overflow: "hidden" }}>
               <div style={{ height: "100%", width: "35%", background: "linear-gradient(90deg,#1565C0,#42A5F5)", borderRadius: 99 }} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-              <span style={{ fontSize: 10, color: "#9CA3AF" }}>Tiến độ</span>
+              <span style={{ fontSize: 10, color: "#9CA3AF" }}>{t("progress")}</span>
               <span style={{ fontSize: 10, color: "#1565C0", fontWeight: 600 }}>35%</span>
             </div>
           </div>
@@ -145,12 +148,9 @@ function CourseCard({ course }: { course: PublicCourseListItem }) {
 ═══════════════════════════════════════════════════════════════ */
 export default function MyCoursesPage() {
   const isLoggedIn = useSelector((s: RootState) => !!s.auth?.accessToken);
+  const t = useTranslations("my_courses");
 
-  const [chatSearch,     setChatSearch]     = useState("");
-  const [chatTab,        setChatTab]        = useState<"all" | "unread">("all");
-  const [showChatFilter, setShowChatFilter] = useState(false);
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [search,         setSearch]         = useState("");
+  const [search, setSearch] = useState("");
 
   const { data, isLoading } = useGetPublicCoursesQuery({ page: 1, pageSize: 100 });
 
@@ -158,13 +158,6 @@ export default function MyCoursesPage() {
   const filteredCourses = enrolledCourses.filter(c =>
     !search || c.title.toLowerCase().includes(search.toLowerCase())
   );
-
-  const filteredChats = MOCK_CHATS.filter((c) => {
-    if (chatSearch && !c.name.toLowerCase().includes(chatSearch.toLowerCase()) &&
-        !c.lastMsg.toLowerCase().includes(chatSearch.toLowerCase())) return false;
-    if (chatTab === "unread" && c.unread === 0) return false;
-    return true;
-  });
 
   return (
     <>
@@ -177,39 +170,20 @@ export default function MyCoursesPage() {
         .mc-scroll:hover { scrollbar-color: rgba(0,0,0,0.18) transparent; }
       `}</style>
 
-      <div style={{ display: "flex", height: "calc(100vh - 56px)", overflow: "hidden", background: "#F3F4F6" }}>
-
-        {/* ═══ COL 1: LEFT NAV ════════════════════════════════════ */}
-        <aside className="mc-scroll" style={{ width: 72, flexShrink: 0, background: "white", borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 8, overflowY: "auto", zIndex: 10 }}>
-          {LEFT_NAV.map((item) => {
-            const locked = item.requireAuth && !isLoggedIn;
-            const active = item.id === "enrolled";
-            return (
-              <Link key={item.id} href={locked ? "/login" : item.href} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "10px 4px", width: "100%", textAlign: "center", textDecoration: "none", color: active ? "#1565C0" : locked ? "#D1D5DB" : "#6B7280", background: active ? "#EFF6FF" : "transparent", borderTop: "none", borderRight: "none", borderBottom: "none", borderLeft: active ? "3px solid #1565C0" : "3px solid transparent" }} title={item.label}>
-                {item.icon}
-                <span style={{ fontSize: 9, fontWeight: 500, lineHeight: 1.2 }}>{item.label}</span>
-              </Link>
-            );
-          })}
-        </aside>
-
-        {/* ═══ COL 2: TIN NHẮN — shared MessagesSidebar ══════════ */}
-        <MessagesSidebar />
-
-        {/* ═══ COL 3: KHOÁ ĐÃ KÍCH HOẠT ══════════════════════════ */}
+      <AppShell activeNavId="enrolled">
         <main className="mc-scroll" style={{ flex: 1, minWidth: 0, background: "#F9FAFB", display: "flex", flexDirection: "column", overflow: "hidden" }}>
           {/* Header */}
           <div style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "20px 28px", flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
               <div>
-                <h1 style={{ fontSize: 20, fontWeight: 800, color: "#111827", margin: 0 }}>Khoá đã kích hoạt</h1>
+                <h1 style={{ fontSize: 20, fontWeight: 800, color: "#111827", margin: 0 }}>{t("title")}</h1>
                 <p style={{ fontSize: 13, color: "#6B7280", margin: "4px 0 0" }}>
-                  {isLoading ? "Đang tải..." : `${enrolledCourses.length} khoá học đang theo học`}
+                  {isLoading ? t("loading") : t("enrolled_count", { count: enrolledCourses.length })}
                 </p>
               </div>
               <div style={{ position: "relative" }}>
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" /></svg>
-                <input type="text" placeholder="Tìm khoá học..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 36, paddingRight: 14, paddingTop: 9, paddingBottom: 9, border: "1px solid #E5E7EB", borderRadius: 20, fontSize: 13, outline: "none", width: 220, background: "#F9FAFB" }} />
+                <input type="text" placeholder={t("search_placeholder")} value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 36, paddingRight: 14, paddingTop: 9, paddingBottom: 9, border: "1px solid #E5E7EB", borderRadius: 20, fontSize: 13, outline: "none", width: 220, background: "#F9FAFB" }} />
               </div>
             </div>
           </div>
@@ -231,21 +205,21 @@ export default function MyCoursesPage() {
             ) : !isLoggedIn ? (
               <div style={{ padding: "80px 0", textAlign: "center" }}>
                 <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
-                <p style={{ fontSize: 16, fontWeight: 600, color: "#374151", marginBottom: 8 }}>Vui lòng đăng nhập</p>
-                <p style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 20 }}>Đăng nhập để xem khoá học đã kích hoạt</p>
-                <Link href="/login" style={{ background: "#1565C0", color: "#fff", padding: "10px 24px", borderRadius: 8, textDecoration: "none", fontSize: 14, fontWeight: 600 }}>Đăng nhập</Link>
+                <p style={{ fontSize: 16, fontWeight: 600, color: "#374151", marginBottom: 8 }}>{t("login_required")}</p>
+                <p style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 20 }}>{t("login_required_desc")}</p>
+                <Link href="/login" style={{ background: "#1565C0", color: "#fff", padding: "10px 24px", borderRadius: 8, textDecoration: "none", fontSize: 14, fontWeight: 600 }}>{t("login_btn")}</Link>
               </div>
             ) : filteredCourses.length === 0 ? (
               <div style={{ padding: "80px 0", textAlign: "center" }}>
                 <div style={{ fontSize: 48, marginBottom: 16 }}>📚</div>
                 <p style={{ fontSize: 16, fontWeight: 600, color: "#374151", marginBottom: 8 }}>
-                  {search ? "Không tìm thấy khoá học" : "Chưa có khoá học nào"}
+                  {search ? t("no_search_results") : t("no_courses_yet")}
                 </p>
                 <p style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 20 }}>
-                  {search ? "Thử tìm với từ khoá khác" : "Hãy khám phá và kích hoạt khoá học đầu tiên của bạn"}
+                  {search ? t("try_other_search") : t("no_courses_desc")}
                 </p>
                 {!search && (
-                  <Link href="/" style={{ background: "#1565C0", color: "#fff", padding: "10px 24px", borderRadius: 8, textDecoration: "none", fontSize: 14, fontWeight: 600 }}>Khám phá khoá học</Link>
+                  <Link href="/" style={{ background: "#1565C0", color: "#fff", padding: "10px 24px", borderRadius: 8, textDecoration: "none", fontSize: 14, fontWeight: 600 }}>{t("explore_courses")}</Link>
                 )}
               </div>
             ) : (
@@ -255,7 +229,7 @@ export default function MyCoursesPage() {
             )}
           </div>
         </main>
-      </div>
+      </AppShell>
     </>
   );
 }

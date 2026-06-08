@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useSelector } from "react-redux";
+import { useTranslations } from "next-intl";
 import type { RootState } from "@/lib/store";
 import Link from "next/link";
 import { safeImgUrl } from "@/lib/utils";
@@ -25,8 +26,10 @@ const VIDEO_STATUS: Record<string, string> = {
   Ready: "✅ Sẵn sàng",
   Failed: "❌ Lỗi",
 };
+void VIDEO_STATUS;
 
 export default function ModuleDetailPage() {
+  const t = useTranslations("admin_module_detail");
   const { id } = useParams<{ id: string }>();
 
   const { data: module, isLoading } = useGetModuleQuery(id);
@@ -107,9 +110,9 @@ export default function ModuleDetailPage() {
     try {
       await updateModule({ id, ...form }).unwrap();
       setEditMode(false);
-      showMsg("success", "Đã cập nhật module");
+      showMsg("success", t("toast_update_ok"));
     } catch {
-      showMsg("error", "Cập nhật thất bại");
+      showMsg("error", t("toast_update_fail"));
     }
   };
 
@@ -131,24 +134,24 @@ export default function ModuleDetailPage() {
       }).unwrap();
       setShowAddSession(false);
       setSessionForm({ title: "", description: "", isFreeTrial: false, sessionType: "Interactive", content: "", audioUrl: "", documentUrl: "", transcript: "", passScore: 70, durationMinutes: 0 });
-      showMsg("success", "Đã thêm nội dung");
+      showMsg("success", t("toast_add_ok"));
     } catch {
-      showMsg("error", "Thêm nội dung thất bại");
+      showMsg("error", t("toast_add_fail"));
     }
   };
 
   const handleDeleteSession = async (sessionId: string, title: string) => {
-    if (!confirm(`Xóa session "${title}"?`)) return;
+    if (!confirm(t("confirm_delete_session", { title }))) return;
     try {
       await deleteSession({ id: sessionId, moduleId: id }).unwrap();
-      showMsg("success", "Đã xóa session");
+      showMsg("success", t("toast_del_ok"));
     } catch {
-      showMsg("error", "Xóa thất bại");
+      showMsg("error", t("toast_del_fail"));
     }
   };
 
-  if (isLoading) return <div className="p-6 text-gray-500">Đang tải...</div>;
-  if (!module) return <div className="p-6 text-red-500">Không tìm thấy module</div>;
+  if (isLoading) return <div className="p-6 text-gray-500">{t("loading")}</div>;
+  if (!module) return <div className="p-6 text-red-500">{t("not_found")}</div>;
 
   const inputCls = "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
   const labelCls = "mb-1 block text-sm font-medium text-gray-700";
@@ -157,9 +160,9 @@ export default function ModuleDetailPage() {
     <div className="p-6">
       {/* Breadcrumb */}
       <nav className="mb-4 text-sm text-gray-500">
-        <Link href="/teacher/courses" className="hover:text-blue-600">Khóa học</Link>
+        <Link href="/teacher/courses" className="hover:text-blue-600">{t("crumb_courses")}</Link>
         <span className="mx-2">/</span>
-        <Link href={`/teacher/courses/${module.courseId}`} className="hover:text-blue-600">Khóa học</Link>
+        <Link href={`/teacher/courses/${module.courseId}`} className="hover:text-blue-600">{t("crumb_course")}</Link>
         <span className="mx-2">/</span>
         <span className="text-gray-800">{module.title}</span>
       </nav>
@@ -173,10 +176,10 @@ export default function ModuleDetailPage() {
       {/* Module Info */}
       <div className="mb-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-start justify-between">
-          <span className="text-sm text-gray-500">Thứ tự: {module.orderIndex + 1}</span>
+          <span className="text-sm text-gray-500">{t("order_label", { n: module.orderIndex + 1 })}</span>
           {!editMode && (
             <button onClick={startEdit} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50">
-              Chỉnh sửa
+              {t("btn_edit")}
             </button>
           )}
         </div>
@@ -185,7 +188,7 @@ export default function ModuleDetailPage() {
           <form onSubmit={handleUpdate} className="space-y-4">
             {/* Tên module */}
             <div>
-              <label className={labelCls}>Tên module *</label>
+              <label className={labelCls}>{t("f_title")}</label>
               <input
                 required
                 value={form.title}
@@ -196,11 +199,11 @@ export default function ModuleDetailPage() {
 
             {/* Mô tả (rich text) */}
             <div>
-              <label className={labelCls}>Mô tả</label>
+              <label className={labelCls}>{t("f_desc")}</label>
               <RichTextEditor
                 value={form.description}
                 onChange={(val) => setForm({ ...form, description: val })}
-                placeholder="Nhập mô tả module..."
+                placeholder={t("f_desc_ph")}
                 height={200}
               />
             </div>
@@ -208,7 +211,7 @@ export default function ModuleDetailPage() {
             {/* Thumbnail + Duration */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className={labelCls}>Ảnh thumbnail</label>
+                <label className={labelCls}>{t("f_thumb")}</label>
                 <input
                   ref={thumbInputRef}
                   type="file"
@@ -239,19 +242,19 @@ export default function ModuleDetailPage() {
                       <img src={thumbPreview || form.thumbnailUrl} alt="thumbnail" className="h-full w-full object-cover" />
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 opacity-0 transition-opacity hover:opacity-100 rounded-xl">
                         <span className="text-xl">📷</span>
-                        <span className="mt-1 text-xs font-medium text-white">Đổi ảnh</span>
+                        <span className="mt-1 text-xs font-medium text-white">{t("thumb_change")}</span>
                       </div>
                     </>
                   ) : (
                     <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400">
                       <span className="text-3xl">🖼️</span>
-                      <span className="text-xs font-medium">Nhấn để chọn ảnh</span>
+                      <span className="text-xs font-medium">{t("thumb_pick")}</span>
                     </div>
                   )}
                 </div>
               </div>
               <div>
-                <label className={labelCls}>Thời lượng ước tính (phút)</label>
+                <label className={labelCls}>{t("f_duration")}</label>
                 <input
                   type="number"
                   min={0}
@@ -264,7 +267,7 @@ export default function ModuleDetailPage() {
 
             {/* Thứ tự */}
             <div className="w-32">
-              <label className={labelCls}>Thứ tự</label>
+              <label className={labelCls}>{t("f_order")}</label>
               <input
                 type="number"
                 min={0}
@@ -282,14 +285,14 @@ export default function ModuleDetailPage() {
                 onChange={(e) => setForm({ ...form, isLocked: e.target.checked })}
                 className="rounded"
               />
-              <span className="font-medium text-gray-700">🔒 Khóa module (học viên phải hoàn thành module trước mới mở khóa)</span>
+              <span className="font-medium text-gray-700">{t("locked_label")}</span>
             </label>
 
             <div className="flex gap-3">
               <button type="submit" disabled={updating} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">
-                {updating ? "Đang lưu..." : "Lưu"}
+                {updating ? t("btn_saving") : t("btn_save")}
               </button>
-              <button type="button" onClick={() => setEditMode(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">Hủy</button>
+              <button type="button" onClick={() => setEditMode(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">{t("btn_cancel")}</button>
             </div>
           </form>
         ) : (
@@ -304,10 +307,10 @@ export default function ModuleDetailPage() {
             <div className="flex-1 space-y-2">
               <h1 className="text-xl font-bold text-gray-900">{module.title}</h1>
               {module.isLocked && (
-                <span className="inline-block rounded-full bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-700">🔒 Module đang khóa</span>
+                <span className="inline-block rounded-full bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-700">{t("locked_badge")}</span>
               )}
               {module.estimatedDuration > 0 && (
-                <p className="text-sm text-gray-500">⏱ Thời lượng ước tính: <strong>{module.estimatedDuration} phút</strong></p>
+                <p className="text-sm text-gray-500">{t("duration_view", { n: module.estimatedDuration })}</p>
               )}
               {module.description && (
                 <div
@@ -322,12 +325,12 @@ export default function ModuleDetailPage() {
 
       {/* Nội dung header */}
       <div className="mb-4 flex items-center justify-between border-b border-gray-200 pb-2">
-        <h2 className="text-lg font-semibold text-gray-900">📚 Nội dung ({sessions?.length ?? 0})</h2>
+        <h2 className="text-lg font-semibold text-gray-900">{t("sessions_title", { n: sessions?.length ?? 0 })}</h2>
         <button
           onClick={() => setShowAddSession(true)}
           className="rounded-lg bg-purple-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-purple-700"
         >
-          + Thêm nội dung
+          {t("btn_add_session")}
         </button>
       </div>
 
@@ -336,7 +339,7 @@ export default function ModuleDetailPage() {
 
         {(!sessions || sessions.length === 0) ? (
           <div className="rounded-xl border border-dashed border-gray-300 py-12 text-center text-gray-400">
-            Chưa có nội dung nào.
+            {t("empty_sessions")}
           </div>
         ) : (
           <div className="space-y-2">
@@ -352,7 +355,7 @@ export default function ModuleDetailPage() {
                         {session.title}
                       </Link>
                       {session.isFreeTrial && (
-                        <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600">Free</span>
+                        <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600">{t("free_badge")}</span>
                       )}
                       <span className="rounded bg-purple-50 px-1.5 py-0.5 text-xs font-medium text-purple-600">
                         {session.sessionType ?? "Interactive"}
@@ -365,13 +368,13 @@ export default function ModuleDetailPage() {
                       </span>
                     </div>
                     <div className="mt-0.5 flex items-center gap-3 text-xs text-gray-400">
-                      <span>🎬 {session.segmentCount} segment</span>
+                      <span>{t("seg_count", { n: session.segmentCount })}</span>
                       {session.durationSeconds > 0 && (
-                        <span>⏱ {Math.round(session.durationSeconds / 60)} phút</span>
+                        <span>{t("mins", { n: Math.round(session.durationSeconds / 60) })}</span>
                       )}
                       {session.videoStatus && (
                         <span className={session.videoStatus === "Ready" ? "text-green-600" : "text-orange-500"}>
-                          {session.videoStatus === "Ready" ? "✅ Video sẵn sàng" : `⚙️ ${session.videoStatus}`}
+                          {session.videoStatus === "Ready" ? t("video_ready") : t("video_processing", { status: session.videoStatus })}
                         </span>
                       )}
                     </div>
@@ -379,13 +382,13 @@ export default function ModuleDetailPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Link href={`/teacher/sessions/${session.id}`} className="rounded bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-200">
-                    Chỉnh sửa
+                    {t("btn_edit_short")}
                   </Link>
                   <button
                     onClick={() => handleDeleteSession(session.id, session.title)}
                     className="rounded bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100"
                   >
-                    Xóa
+                    {t("btn_delete_short")}
                   </button>
                 </div>
               </div>
@@ -398,36 +401,36 @@ export default function ModuleDetailPage() {
       {showAddSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="scroll-area w-full max-w-lg rounded-xl bg-white p-6 shadow-xl overflow-y-auto max-h-[90vh]">
-            <h2 className="mb-4 text-lg font-semibold">Thêm nội dung</h2>
+            <h2 className="mb-4 text-lg font-semibold">{t("modal_add_title")}</h2>
             <form onSubmit={handleAddSession} className="space-y-4">
               {/* Session type */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Loại nội dung *</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">{t("f_type")}</label>
                 <select
                   value={sessionForm.sessionType}
                   onChange={(e) => setSessionForm({ ...sessionForm, sessionType: e.target.value })}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
-                  <option value="Interactive">🎬 Interactive (video + timeline segments)</option>
-                  <option value="Video">📹 Video đơn giản</option>
-                  <option value="Reading">📖 Reading (văn bản HTML)</option>
-                  <option value="Audio">🎧 Audio</option>
-                  <option value="Pdf">📄 PDF</option>
-                  <option value="Quiz">❓ Quiz</option>
+                  <option value="Interactive">{t("type_interactive")}</option>
+                  <option value="Video">{t("type_video")}</option>
+                  <option value="Reading">{t("type_reading")}</option>
+                  <option value="Audio">{t("type_audio")}</option>
+                  <option value="Pdf">{t("type_pdf")}</option>
+                  <option value="Quiz">{t("type_quiz")}</option>
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Tiêu đề *</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">{t("f_session_title")}</label>
                 <input
                   required
                   value={sessionForm.title}
                   onChange={(e) => setSessionForm({ ...sessionForm, title: e.target.value })}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="VD: Buổi học 1: Present Simple"
+                  placeholder={t("f_session_title_ph")}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Mô tả ngắn</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">{t("f_short_desc")}</label>
                 <textarea
                   value={sessionForm.description}
                   onChange={(e) => setSessionForm({ ...sessionForm, description: e.target.value })}
@@ -439,11 +442,11 @@ export default function ModuleDetailPage() {
               {/* Conditional: Reading content */}
               {sessionForm.sessionType === "Reading" && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Nội dung HTML</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">{t("f_html")}</label>
                   <RichTextEditor
                     value={sessionForm.content}
                     onChange={(val) => setSessionForm({ ...sessionForm, content: val })}
-                    placeholder="Nhập nội dung bài đọc..."
+                    placeholder={t("f_html_ph")}
                     height={200}
                   />
                 </div>
@@ -452,7 +455,7 @@ export default function ModuleDetailPage() {
               {/* Conditional: Audio URL */}
               {sessionForm.sessionType === "Audio" && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">URL Audio</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">{t("f_audio_url")}</label>
                   <input
                     type="url"
                     value={sessionForm.audioUrl}
@@ -466,7 +469,7 @@ export default function ModuleDetailPage() {
               {/* Conditional: Document URL */}
               {sessionForm.sessionType === "Pdf" && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">URL PDF</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">{t("f_pdf_url")}</label>
                   <input
                     type="url"
                     value={sessionForm.documentUrl}
@@ -481,7 +484,7 @@ export default function ModuleDetailPage() {
               {["Reading", "Audio", "Pdf", "Quiz"].includes(sessionForm.sessionType) && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Thời lượng (phút)</label>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">{t("f_dur_min")}</label>
                     <input
                       type="number" min={0}
                       value={sessionForm.durationMinutes}
@@ -491,7 +494,7 @@ export default function ModuleDetailPage() {
                   </div>
                   {sessionForm.sessionType === "Quiz" && (
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-gray-700">Điểm qua (%)</label>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">{t("f_pass_score")}</label>
                       <input
                         type="number" min={0} max={100}
                         value={sessionForm.passScore}
@@ -510,12 +513,12 @@ export default function ModuleDetailPage() {
                   onChange={(e) => setSessionForm({ ...sessionForm, isFreeTrial: e.target.checked })}
                   className="rounded"
                 />
-                <span className="font-medium text-gray-700">Học thử miễn phí</span>
+                <span className="font-medium text-gray-700">{t("free_trial_label")}</span>
               </label>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowAddSession(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">Hủy</button>
+                <button type="button" onClick={() => setShowAddSession(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">{t("btn_cancel")}</button>
                 <button type="submit" disabled={creatingSession} className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-60">
-                  {creatingSession ? "Đang thêm..." : "Thêm"}
+                  {creatingSession ? t("btn_adding") : t("btn_add")}
                 </button>
               </div>
             </form>

@@ -19,22 +19,8 @@ import { addToCart } from "@/lib/features/cart/cartSlice";
 import { useListQuizzesQuery } from "@/lib/features/quiz/quizApi";
 import PricingCards from "@/components/pricing/PricingCards";
 import { useGetCoursePackagesQuery } from "@/lib/features/packages/packagesApi";
-
-const LEVEL_LABELS: Record<number, string> = {
-  1: "Cấp 1 — Nhập môn", 2: "Cấp 2 — Cơ bản",
-  3: "Cấp 3 — Sơ trung",  4: "Cấp 4 — Trung cấp",
-  5: "Cấp 5 — Trung cao",  6: "Cấp 6 — Nâng cao",
-};
-
-const LANGUAGE_LABELS: Record<string, string> = {
-  VI: "Tiếng Việt",
-  EN: "English",
-  JA: "日本語",
-  KO: "한국어",
-  ZH: "中文",
-  FR: "Français",
-  DE: "Deutsch",
-};
+import { useFormatters } from "@/lib/hooks/useFormatters";
+import { useTranslations } from "next-intl";
 
 function tryParseJsonArray(val: string | null | undefined): string[] {
   if (!val) return [];
@@ -51,18 +37,25 @@ function formatUpdateDate(dateStr: string | null | undefined): string {
   return `T${d.getMonth() + 1}/${String(d.getFullYear()).slice(-2)}`;
 }
 
-function formatDuration(seconds: number) {
-  if (!seconds) return "";
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h > 0) return `${h}g ${m}p`;
-  return `${m} phút`;
+function useFormatDuration() {
+  const tx = useTranslations("course_detail_extra");
+  return (seconds: number) => {
+    if (!seconds) return "";
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h > 0) return tx("hours_short", { h, m });
+    return tx("minutes_short", { count: m });
+  };
 }
 
 /* ─── QuizSection — shows published quizzes related to this course ─── */
 function QuizSection({ courseLevel }: { courseLevel: number }) {
   const { data, isLoading } = useListQuizzesQuery({ status: "Published", pageSize: 4 });
   const quizzes = data?.items ?? [];
+  const t = useTranslations("course_detail");
+  const tx = useTranslations("course_detail_extra");
+  const tLevels = useTranslations("level_labels");
+  const levelShort = tLevels.has(`${courseLevel}`) ? tLevels(`${courseLevel}`) : tLevels("fallback", { n: courseLevel });
 
   if (isLoading) {
     return (
@@ -76,12 +69,8 @@ function QuizSection({ courseLevel }: { courseLevel: number }) {
 
   if (quizzes.length === 0) return null;
 
-  const LEVEL_LABELS_SHORT: Record<number, string> = {
-    1: "Nhập môn", 2: "Cơ bản", 3: "Sơ trung",
-    4: "Trung cấp", 5: "Trung cao", 6: "Nâng cao",
-  };
-  const QUIZ_TYPE_LABELS: Record<string, string> = {
-    PlacementTest: "Xếp lớp", CourseQuiz: "Kiểm tra", PracticeQuiz: "Luyện tập",
+  const QUIZ_TYPE_KEYS: Record<string, string> = {
+    PlacementTest: "quiz_type_placement", CourseQuiz: "quiz_type_course", PracticeQuiz: "quiz_type_practice",
   };
 
   return (
@@ -93,11 +82,11 @@ function QuizSection({ courseLevel }: { courseLevel: number }) {
             <Target className="text-white" size={18} />
           </div>
           <div>
-            <h2 className="text-xl font-bold">Bài kiểm tra</h2>
-            <p className="text-gray-400 text-xs">{quizzes.length} bài kiểm tra • Trình độ {LEVEL_LABELS_SHORT[courseLevel] ?? `Cấp ${courseLevel}`}</p>
+            <h2 className="text-xl font-bold">{t("quiz_section")}</h2>
+            <p className="text-gray-400 text-xs">{t("quizzes_count", {count: quizzes.length})} • {levelShort}</p>
           </div>
         </div>
-        <Link href="/placement-test" className="text-sm font-semibold text-blue-600 hover:text-blue-800 no-underline">Kiểm tra xếp lớp →</Link>
+        <Link href="/placement-test" className="text-sm font-semibold text-blue-600 hover:text-blue-800 no-underline">{t("placement_check")}</Link>
       </div>
       <div className="space-y-3">
         {quizzes.map((quiz) => (
@@ -109,8 +98,8 @@ function QuizSection({ courseLevel }: { courseLevel: number }) {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-700">{quiz.title}</p>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  {QUIZ_TYPE_LABELS[quiz.quizType] ?? quiz.quizType} · {quiz.questionCount} câu · Đạt {quiz.passingScore}%
-                  {quiz.timeLimitSeconds && ` · ${Math.round(quiz.timeLimitSeconds / 60)} phút`}
+                  {(QUIZ_TYPE_KEYS[quiz.quizType] ? tx(QUIZ_TYPE_KEYS[quiz.quizType]) : quiz.quizType)} · {tx("questions_unit", { count: quiz.questionCount })} · {tx("quiz_pass", { score: quiz.passingScore })}
+                  {quiz.timeLimitSeconds && ` · ${tx("minutes_short", { count: Math.round(quiz.timeLimitSeconds / 60) })}`}
                 </p>
               </div>
               <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-500 flex-shrink-0" />
@@ -128,6 +117,19 @@ export default function CourseDetailPage() {
   const dispatch = useAppDispatch();
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
   const [addedToCart, setAddedToCart] = useState(false);
+  const { fmtNumber } = useFormatters();
+  const t = useTranslations("course_detail");
+  const tx = useTranslations("course_detail_extra");
+  const tLevels = useTranslations("level_labels");
+  const tLangs = useTranslations("language_labels");
+  const formatDuration = useFormatDuration();
+  const levelLong = (lvl: number) =>
+    tLevels.has(`${lvl}`) ? `${tLevels("fallback", { n: lvl })} — ${tLevels(`${lvl}`)}` : tLevels("fallback", { n: lvl });
+  const languageLabel = (code: string | null | undefined) => {
+    if (!code) return "—";
+    const k = code.toLowerCase();
+    return tLangs.has(k) ? tLangs(k) : code;
+  };
 
   const isHydrated = useAppSelector((s) => s.auth.isHydrated);
   const { data: course, isLoading } = useGetPublicCourseQuery(id, { skip: !id || !isHydrated });
@@ -181,7 +183,7 @@ export default function CourseDetailPage() {
   if (!course) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-400 text-base">Không tìm thấy khóa học.</p>
+        <p className="text-gray-400 text-base">{t("not_found")}</p>
       </div>
     );
   }
@@ -201,13 +203,13 @@ export default function CourseDetailPage() {
           {/* Back link – sát top menu */}
           <Link href="/courses" className="flex w-fit items-center gap-1.5 text-white/80 hover:text-white transition-colors mb-4 no-underline">
             <ArrowLeft size={16} />
-            <span className="text-sm">Quay lại danh sách</span>
+            <span className="text-sm">{t("back_to_list")}</span>
           </Link>
           <div className="flex items-start gap-8">
             {/* Left text */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex-1 min-w-0">
               <div className="inline-flex items-center bg-orange-500 px-3 py-1 rounded-full mb-4">
-                <span className="text-white text-xs font-bold tracking-wide">KHÓA HỌC PHỔ BIẾN</span>
+                <span className="text-white text-xs font-bold tracking-wide">{t("popular_badge")}</span>
               </div>
               <h1 className="text-4xl font-bold text-white mb-3 leading-tight">{course.title}</h1>
               {course.shortDescription && (
@@ -226,7 +228,7 @@ export default function CourseDetailPage() {
                     <>
                       <span className="text-white/40">·</span>
                       <Calendar size={13} className="text-white/70" />
-                      <span className="text-white/70 text-sm">Cập nhật {formatUpdateDate(course.publishedAt)}</span>
+                      <span className="text-white/70 text-sm">{t("updated")} {formatUpdateDate(course.publishedAt)}</span>
                     </>
                   )}
                 </div>
@@ -237,17 +239,17 @@ export default function CourseDetailPage() {
                 <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5">
                   <Star size={13} className="text-yellow-300 fill-yellow-300 flex-shrink-0" />
                   <span className="text-white text-sm font-semibold">4.9</span>
-                  <span className="text-white/70 text-xs">(234 đánh giá)</span>
+                  <span className="text-white/70 text-xs">{tx("review_count_short", { count: 234 })}</span>
                 </div>
                 <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5">
                   <Users size={13} className="text-white flex-shrink-0" />
-                  <span className="text-white text-sm font-semibold">{(course.enrollmentCount ?? 0).toLocaleString("vi-VN")}</span>
-                  <span className="text-white/70 text-xs">đang học</span>
+                  <span className="text-white text-sm font-semibold">{fmtNumber(course.enrollmentCount ?? 0)}</span>
+                  <span className="text-white/70 text-xs">{t("studying")}</span>
                 </div>
                 <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5">
                   <ShoppingCart size={13} className="text-white flex-shrink-0" />
-                  <span className="text-white text-sm font-semibold">{(course.paidEnrollmentCount ?? 0).toLocaleString("vi-VN")}</span>
-                  <span className="text-white/70 text-xs">đã mua</span>
+                  <span className="text-white text-sm font-semibold">{fmtNumber(course.paidEnrollmentCount ?? 0)}</span>
+                  <span className="text-white/70 text-xs">{t("bought")}</span>
                 </div>
                 {totalDuration > 0 && (
                   <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5">
@@ -258,12 +260,12 @@ export default function CourseDetailPage() {
                 {totalLessons > 0 && (
                   <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5">
                     <BookOpen size={13} className="text-white/80 flex-shrink-0" />
-                    <span className="text-white/90 text-sm">{totalLessons} bài học</span>
+                    <span className="text-white/90 text-sm">{t("sessions_count", {count: totalLessons})}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5">
                   <GraduationCap size={13} className="text-white/80 flex-shrink-0" />
-                  <span className="text-white/90 text-sm">{LEVEL_LABELS[course.level] ?? `Cấp ${course.level}`}</span>
+                  <span className="text-white/90 text-sm">{levelLong(course.level)}</span>
                 </div>
               </div>
             </motion.div>
@@ -285,13 +287,13 @@ export default function CourseDetailPage() {
                     </div>
                   )}
                   <div className="p-4">
-                    <p className="text-white/80 text-xs mb-1">Tiến độ học tập</p>
+                    <p className="text-white/80 text-xs mb-1">{t("learning_progress")}</p>
                     <div className="w-full bg-white/20 rounded-full h-1.5 mb-3">
                       <div className="bg-white rounded-full h-1.5 w-1/4" />
                     </div>
                     <Link href={firstContentUrl} className="flex items-center justify-center gap-2 w-full bg-white text-purple-700 hover:bg-white/90 font-bold py-2.5 rounded-xl transition-colors no-underline text-sm">
                       <PlayCircle size={16} />
-                      Tiếp tục học
+                      {t("continue_learning")}
                     </Link>
                   </div>
                 </div>
@@ -301,7 +303,7 @@ export default function CourseDetailPage() {
                     <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
                       <BookOpen className="text-white" size={15} />
                     </div>
-                    <h3 className="font-bold text-white text-base">Chương trình học</h3>
+                    <h3 className="font-bold text-white text-base">{tx("curriculum_header")}</h3>
                   </div>
                   <div className="px-3 pb-2 space-y-1.5">
                     {course.modules.slice(0, 3).map((mod, idx) => {
@@ -312,14 +314,14 @@ export default function CourseDetailPage() {
                             <span className="text-white text-xs font-bold">{idx + 1}</span>
                           </div>
                           <p className="text-sm font-medium text-white flex-1 truncate">
-                            {mod.title} · {mod.sessions.length} bài học
+                            {mod.title} · {t("chapter_lessons", {count: mod.sessions.length})}
                           </p>
                           <ChevronRight size={14} className="text-white/50 flex-shrink-0" />
                         </div>
                       );
                     })}
                     {course.modules.length > 3 && (
-                      <p className="text-sm text-white/50 pl-3 py-1">+{course.modules.length - 3} chương nữa...</p>
+                      <p className="text-sm text-white/50 pl-3 py-1">{tx("more_chapters", { count: course.modules.length - 3 })}</p>
                     )}
                   </div>
                   <div className="px-3 pb-3 pt-1">
@@ -327,7 +329,7 @@ export default function CourseDetailPage() {
                       onClick={() => document.getElementById("course-content")?.scrollIntoView({ behavior: "smooth" })}
                       className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-semibold py-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 text-sm"
                     >
-                      Xem đầy đủ bên dưới
+                      {t("view_full_below")}
                       <ChevronDown size={16} />
                     </button>
                   </div>
@@ -347,24 +349,24 @@ export default function CourseDetailPage() {
 
             {/* Introduction */}
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-white rounded-2xl shadow-sm p-6">
-              <h2 className="text-xl font-bold mb-4">Giới thiệu về khóa học</h2>
+              <h2 className="text-xl font-bold mb-4">{t("intro_title")}</h2>
               {course.description ? (
                 <div className="prose-kh" dangerouslySetInnerHTML={{ __html: course.description }} />
               ) : (
-                <p className="text-gray-700 text-sm leading-relaxed">{course.shortDescription ?? "Chưa có mô tả."}</p>
+                <p className="text-gray-700 text-sm leading-relaxed">{course.shortDescription ?? t("no_description")}</p>
               )}
               <div className="mt-5 grid md:grid-cols-3 gap-4">
                 <div className="bg-blue-50 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-1"><BarChart className="text-blue-600" size={18} /><span className="font-semibold text-blue-900 text-sm">Trình độ</span></div>
-                  <p className="text-xs text-blue-700">{LEVEL_LABELS[course.level] ?? `Cấp ${course.level}`}</p>
+                  <div className="flex items-center gap-2 mb-1"><BarChart className="text-blue-600" size={18} /><span className="font-semibold text-blue-900 text-sm">{t("level_label")}</span></div>
+                  <p className="text-xs text-blue-700">{levelLong(course.level)}</p>
                 </div>
                 <div className="bg-green-50 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-1"><Clock className="text-green-600" size={18} /><span className="font-semibold text-green-900 text-sm">Thời lượng</span></div>
-                  <p className="text-xs text-green-700">{totalDuration > 0 ? formatDuration(totalDuration) : "—"} · {totalLessons} bài</p>
+                  <div className="flex items-center gap-2 mb-1"><Clock className="text-green-600" size={18} /><span className="font-semibold text-green-900 text-sm">{t("duration_label")}</span></div>
+                  <p className="text-xs text-green-700">{totalDuration > 0 ? formatDuration(totalDuration) : "—"} · {t("sessions_count", { count: totalLessons })}</p>
                 </div>
                 <div className="bg-purple-50 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-1"><Globe className="text-purple-600" size={18} /><span className="font-semibold text-purple-900 text-sm">Ngôn ngữ</span></div>
-                  <p className="text-xs text-purple-700">{LANGUAGE_LABELS[course.language ?? "VI"] ?? course.language ?? "—"}</p>
+                  <div className="flex items-center gap-2 mb-1"><Globe className="text-purple-600" size={18} /><span className="font-semibold text-purple-900 text-sm">{t("language_label")}</span></div>
+                  <p className="text-xs text-purple-700">{languageLabel(course.language)}</p>
                 </div>
               </div>
             </motion.div>
@@ -374,7 +376,7 @@ export default function CourseDetailPage() {
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-white rounded-2xl shadow-sm p-6">
               <div className="flex items-center gap-3 mb-5">
                 <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500"><Target className="text-white" size={20} /></div>
-                <h2 className="text-xl font-bold">Những gì bạn sẽ học</h2>
+                <h2 className="text-xl font-bold">{tx("what_you_learn")}</h2>
               </div>
               <div className="grid md:grid-cols-2 gap-3">
                 {tryParseJsonArray(course.outcomes).map((item) => (
@@ -392,7 +394,7 @@ export default function CourseDetailPage() {
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-white rounded-2xl shadow-sm p-6">
               <div className="flex items-center gap-3 mb-5">
                 <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500"><BookOpen className="text-white" size={20} /></div>
-                <h2 className="text-xl font-bold">Yêu cầu</h2>
+                <h2 className="text-xl font-bold">{t("requirements_title")}</h2>
               </div>
               <ul className="space-y-2">
                 {tryParseJsonArray(course.requirements).map((item) => (
@@ -410,7 +412,7 @@ export default function CourseDetailPage() {
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl border border-orange-100 p-6">
               <div className="flex items-center gap-3 mb-4">
                 <Users className="text-orange-600" size={22} />
-                <h2 className="text-xl font-bold text-orange-900">Khóa học này dành cho ai?</h2>
+                <h2 className="text-xl font-bold text-orange-900">{tx("target_audience")}</h2>
               </div>
               <div className="grid md:grid-cols-2 gap-3">
                 {tryParseJsonArray(course.targetAudience).map((item) => (
@@ -428,12 +430,12 @@ export default function CourseDetailPage() {
               <div className="flex items-center gap-3 mb-5">
                 <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500"><BookOpen className="text-white" size={20} /></div>
                 <div>
-                  <h2 className="text-xl font-bold">Nội dung khóa học</h2>
-                  <p className="text-gray-500 text-xs">{course.modules.length} modules · {totalLessons} bài{totalDuration > 0 ? ` · ${formatDuration(totalDuration)}` : ""}</p>
+                  <h2 className="text-xl font-bold">{t("curriculum_title")}</h2>
+                  <p className="text-gray-500 text-xs">{tx("modules_unit", { count: course.modules.length })} · {t("sessions_count", {count: totalLessons})}{totalDuration > 0 ? ` · ${formatDuration(totalDuration)}` : ""}</p>
                 </div>
               </div>
               {course.modules.length === 0 ? (
-                <p className="text-gray-400 text-sm text-center py-8">Chưa có nội dung.</p>
+                <p className="text-gray-400 text-sm text-center py-8">{tx("no_content")}</p>
               ) : (
                 <div className="space-y-3">
                   {course.modules.map((mod, mIdx) => {
@@ -452,7 +454,7 @@ export default function CourseDetailPage() {
                               </div>
                               <div className="text-left">
                                 <p className="font-semibold text-sm">{mod.title}</p>
-                                <p className="text-xs text-gray-500">{mod.sessions.length} bài{modDuration > 0 ? ` · ${formatDuration(modDuration)}` : ""}</p>
+                                <p className="text-xs text-gray-500">{t("chapter_lessons", {count: mod.sessions.length})}{modDuration > 0 ? ` · ${formatDuration(modDuration)}` : ""}</p>
                               </div>
                             </div>
                             <ChevronRight className={`text-gray-400 transition-transform flex-shrink-0 ${isOpen ? "rotate-90" : ""}`} size={20} />
@@ -471,7 +473,7 @@ export default function CourseDetailPage() {
                                       </div>
                                       <div>
                                         <p className={`text-sm font-medium ${accessible ? "text-gray-900" : "text-gray-400"}`}>{session.title}</p>
-                                        {session.isFreeTrial && !course.isEnrolled && <p className="text-xs text-blue-600">Học thử miễn phí</p>}
+                                        {session.isFreeTrial && !course.isEnrolled && <p className="text-xs text-blue-600">{tx("free_trial_label")}</p>}
                                       </div>
                                     </div>
                                     {session.durationSeconds > 0 && <span className="text-xs text-gray-500 flex-shrink-0">{formatDuration(session.durationSeconds)}</span>}
@@ -511,10 +513,10 @@ export default function CourseDetailPage() {
 
               {/* Stats card */}
               <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl shadow-lg p-5 text-white">
-                <h3 className="font-bold mb-4">Thống kê khóa học</h3>
+                <h3 className="font-bold mb-4">{tx("stats_title")}</h3>
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm">Tỷ lệ hoàn thành</span>
+                    <span className="text-sm">{tx("completion_rate")}</span>
                     <span className="font-bold text-sm">94%</span>
                   </div>
                   <div className="w-full bg-white/20 rounded-full h-2">
@@ -523,9 +525,9 @@ export default function CourseDetailPage() {
                 </div>
                 <div className="space-y-3">
                   {[
-                    { Icon: Calendar, label: "Cập nhật",  value: "T5/2026" },
-                    { Icon: Users,    label: "Học viên",  value: "1,234"   },
-                    { Icon: Award,    label: "Chứng chỉ", value: "Có"      },
+                    { Icon: Calendar, label: tx("stat_updated"),  value: "T5/2026" },
+                    { Icon: Users,    label: tx("stat_students"),  value: "1,234"   },
+                    { Icon: Award,    label: tx("stat_certificate"), value: tx("stat_certificate_yes") },
                   ].map(({ Icon, label, value }) => (
                     <div key={label} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2"><Icon size={15} /><span>{label}</span></div>
@@ -538,7 +540,7 @@ export default function CourseDetailPage() {
               {/* CTA — shown only when no backend packages exist (fallback) */}
               {course.isEnrolled ? (
                 <Link href={firstContentUrl} className="block text-center bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all no-underline">
-                  Tiếp tục học →
+                  {t("continue_learning")}
                 </Link>
               ) : firstSession?.isFreeTrial ? (
                 <Link href={firstContentUrl} className="block text-center bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-3 rounded-xl shadow-lg transition-all no-underline">

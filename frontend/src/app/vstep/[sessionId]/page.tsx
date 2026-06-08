@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import AppShell from "../../_components/AppShell";
 import {
   useGetSessionQuery,
@@ -25,11 +26,11 @@ const PART_ROUTES: Record<VSTEPPart, string> = {
   Speaking:  "speaking",
 };
 
-const PART_INFO: Record<VSTEPPart, { q: string; time: string; color: string }> = {
-  Listening: { q: "35 câu MCQ",   time: "40 phút", color: "#3B82F6" },
-  Reading:   { q: "40 câu MCQ",   time: "60 phút", color: "#10B981" },
-  Writing:   { q: "2 tasks",      time: "60 phút", color: "#F59E0B" },
-  Speaking:  { q: "3 phần nói",   time: "12 phút", color: "#EF4444" },
+const PART_COLORS: Record<VSTEPPart, string> = {
+  Listening: "#3B82F6",
+  Reading:   "#10B981",
+  Writing:   "#F59E0B",
+  Speaking:  "#EF4444",
 };
 
 function getPartStatus(session: { partState: Record<string, string>; isCompleted: boolean }, part: VSTEPPart) {
@@ -44,16 +45,24 @@ function getPartStatus(session: { partState: Record<string, string>; isCompleted
 export default function VSTEPSessionPage() {
   const router = useRouter();
   const { sessionId } = useParams<{ sessionId: string }>();
+  const t = useTranslations("vstep_player");
 
   const { data: session, isLoading } = useGetSessionQuery(sessionId, {
     pollingInterval: 5000,
   });
   const { data: result } = useGetResultQuery(sessionId, { skip: !session?.isCompleted });
 
+  const partInfo: Record<VSTEPPart, { q: string; time: string; color: string; label: string }> = {
+    Listening: { q: t("part_listening_q"), time: t("part_listening_time"), color: PART_COLORS.Listening, label: t("skill_listening") },
+    Reading:   { q: t("part_reading_q"),   time: t("part_reading_time"),   color: PART_COLORS.Reading,   label: t("skill_reading") },
+    Writing:   { q: t("part_writing_q"),   time: t("part_writing_time"),   color: PART_COLORS.Writing,   label: t("skill_writing") },
+    Speaking:  { q: t("part_speaking_q"),  time: t("part_speaking_time"),  color: PART_COLORS.Speaking,  label: t("skill_speaking") },
+  };
+
   if (isLoading) {
     return (
       <AppShell>
-        <div style={{ padding: 40, textAlign: "center", color: "#9CA3AF" }}>Đang tải...</div>
+        <div style={{ padding: 40, textAlign: "center", color: "#9CA3AF" }}>{t("loading")}</div>
       </AppShell>
     );
   }
@@ -61,7 +70,7 @@ export default function VSTEPSessionPage() {
   if (!session) {
     return (
       <AppShell>
-        <div style={{ padding: 40, textAlign: "center", color: "#EF4444" }}>Không tìm thấy phiên thi.</div>
+        <div style={{ padding: 40, textAlign: "center", color: "#EF4444" }}>{t("session_not_found")}</div>
       </AppShell>
     );
   }
@@ -75,17 +84,17 @@ export default function VSTEPSessionPage() {
             onClick={() => router.push("/vstep")}
             style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280", fontSize: 14, padding: 0, marginBottom: 12 }}
           >
-            ← Quay lại
+            {t("back")}
           </button>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "#111827", margin: 0 }}>
-            Phiên thi VSTEP
+            {t("session_title")}
           </h1>
           <p style={{ color: "#6B7280", fontSize: 13, marginTop: 6 }}>
-            Hoàn thành lần lượt từng phần theo thứ tự: Nghe → Đọc → Viết → Nói
+            {t("instructions")}
           </p>
           {session.targetBand && (
             <p style={{ color: "#EA580C", fontSize: 13, marginTop: 4 }}>
-              Mục tiêu: band {session.targetBand}
+              {t("target_band", { band: session.targetBand })}
             </p>
           )}
         </div>
@@ -94,7 +103,7 @@ export default function VSTEPSessionPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 28 }}>
           {VSTEP_PARTS.map((part, idx) => {
             const status = getPartStatus(session, part);
-            const info = PART_INFO[part];
+            const info = partInfo[part];
             const scoreKey = `${part.toLowerCase()}Score` as keyof typeof session;
             const score = session[scoreKey] as number | null;
             const isNext = !session.isCompleted && session.currentPart === part;
@@ -123,19 +132,19 @@ export default function VSTEPSessionPage() {
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontWeight: 700, fontSize: 15, color: "#111827" }}>
-                      Phần {idx + 1}: {VSTEP_PART_LABELS[part]}
+                      {t("part_n", { n: idx + 1 })}{info.label}
                     </span>
                     {isNext && (
                       <span style={{
                         fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 99,
                         background: info.color, color: "white",
-                      }}>Tiếp theo</span>
+                      }}>{t("badge_next")}</span>
                     )}
                     {status === "done" && (
                       <span style={{
                         fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 99,
                         background: "#D1FAE5", color: "#065F46",
-                      }}>Hoàn thành</span>
+                      }}>{t("badge_completed")}</span>
                     )}
                   </div>
                   <div style={{ fontSize: 12, color: "#6B7280", marginTop: 3 }}>
@@ -143,7 +152,7 @@ export default function VSTEPSessionPage() {
                   </div>
                   {score !== null && (
                     <div style={{ fontSize: 13, color: info.color, fontWeight: 600, marginTop: 3 }}>
-                      Điểm: {score.toFixed(1)} / 10
+                      {t("score_label")}{score.toFixed(1)}{t("score_suffix")}
                     </div>
                   )}
                 </div>
@@ -158,7 +167,7 @@ export default function VSTEPSessionPage() {
                       flexShrink: 0,
                     }}
                   >
-                    Vào thi
+                    {t("enter_test")}
                   </button>
                 )}
               </div>
@@ -177,16 +186,16 @@ export default function VSTEPSessionPage() {
               Band {result.assignedBand} — {VSTEP_BAND_LABELS[result.assignedBand]}
             </h2>
             <p style={{ color: "#6B7280", fontSize: 14, margin: "0 0 16px" }}>
-              Điểm trung bình: {result.overallScore.toFixed(1)} / 10
+              {t("avg_score")}{result.overallScore.toFixed(1)}{t("score_suffix")}
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 20 }}>
-              {(["Nghe", "Đọc", "Viết", "Nói"] as const).map((label, i) => {
+              {(["Listening", "Reading", "Writing", "Speaking"] as const).map((part, i) => {
                 const keys = ["listeningScore", "readingScore", "writingScore", "speakingScore"] as const;
                 const s = result[keys[i]];
                 return (
-                  <div key={label} style={{ background: "white", borderRadius: 10, padding: "10px 6px", textAlign: "center" }}>
+                  <div key={part} style={{ background: "white", borderRadius: 10, padding: "10px 6px", textAlign: "center" }}>
                     <div style={{ fontSize: 18, fontWeight: 700, color: "#EA580C" }}>{s.toFixed(1)}</div>
-                    <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>{label}</div>
+                    <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>{partInfo[part].label}</div>
                   </div>
                 );
               })}
@@ -199,7 +208,7 @@ export default function VSTEPSessionPage() {
                 fontWeight: 600, fontSize: 14, cursor: "pointer",
               }}
             >
-              Xem chi tiết kết quả
+              {t("view_detailed_result")}
             </button>
           </div>
         )}

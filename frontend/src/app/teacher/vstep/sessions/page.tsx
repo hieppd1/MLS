@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 // Note: sessions are stored in VSTEPSessions table, but there's no teacher-facing
 // list query yet. We show a placeholder that links to the quiz detail pages.
@@ -21,16 +22,17 @@ const MOCK_STATS = [
 ];
 
 export default function TeacherVSTEPSessionsPage() {
+  const t = useTranslations("teacher_vstep_sessions");
   const [_filter, setFilter] = useState("all");
 
   return (
     <div style={{ padding: 32 }}>
       <div style={{ marginBottom: 24 }}>
         <Link href="/teacher/vstep" style={{ fontSize: 13, color: "#6B7280", textDecoration: "none", display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
-          ← Tổng quan VSTEP
+          {t("back")}
         </Link>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: "#111827", margin: 0 }}>Phiên thi VSTEP</h1>
-        <p style={{ fontSize: 14, color: "#6B7280", margin: "4px 0 0" }}>Lịch sử thi và kết quả của học viên</p>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: "#111827", margin: 0 }}>{t("title")}</h1>
+        <p style={{ fontSize: 14, color: "#6B7280", margin: "4px 0 0" }}>{t("subtitle")}</p>
       </div>
 
       {/* Stats */}
@@ -39,7 +41,7 @@ export default function TeacherVSTEPSessionsPage() {
           <div key={band} style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: BAND_COLOR[band] ?? "#374151" }}>{band}</div>
             <div style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>{count}</div>
-            <div style={{ fontSize: 12, color: "#9CA3AF" }}>{pct}% học viên</div>
+            <div style={{ fontSize: 12, color: "#9CA3AF" }}>{pct}%</div>
           </div>
         ))}
       </div>
@@ -52,7 +54,7 @@ export default function TeacherVSTEPSessionsPage() {
               background: _filter === f ? MLS_NAVY : "#fff",
               color: _filter === f ? "#fff" : "#374151",
               cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-            {f === "all" ? "Tất cả" : `Band ${f}`}
+            {f === "all" ? t("all") : `Band ${f}`}
           </button>
         ))}
       </div>
@@ -61,20 +63,19 @@ export default function TeacherVSTEPSessionsPage() {
       <div style={{ background: "#fff", borderRadius: 16, padding: 32, boxShadow: "0 2px 12px rgba(0,0,0,0.07)", textAlign: "center" }}>
         <div style={{ fontSize: 36, marginBottom: 12 }}>🚧</div>
         <div style={{ fontSize: 16, fontWeight: 700, color: "#111827", marginBottom: 8 }}>
-          Danh sách phiên thi đang được phát triển
+          {t("placeholder_heading")}
         </div>
         <div style={{ fontSize: 14, color: "#6B7280", maxWidth: 480, margin: "0 auto", lineHeight: 1.7 }}>
-          Tính năng này sẽ hiển thị toàn bộ lịch sử thi của học viên, bao gồm điểm từng kỹ năng,
-          band đạt được và thời gian thi. Hiện tại bạn có thể xem kết quả qua trang học viên.
+          {t("placeholder_body")}
         </div>
         <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 20 }}>
           <Link href="/teacher/vstep"
             style={{ padding: "9px 20px", borderRadius: 8, border: `1px solid ${MLS_NAVY}`, color: MLS_NAVY, textDecoration: "none", fontWeight: 600, fontSize: 13 }}>
-            ← Tổng quan VSTEP
+            {t("btn_overview")}
           </Link>
           <Link href="/teacher/quizzes"
             style={{ padding: "9px 20px", borderRadius: 8, border: "none", background: MLS_NAVY, color: "#fff", textDecoration: "none", fontWeight: 600, fontSize: 13 }}>
-            Quản lý bài thi
+            {t("btn_manage")}
           </Link>
         </div>
       </div>

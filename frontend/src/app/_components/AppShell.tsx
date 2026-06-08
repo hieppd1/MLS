@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSelector } from "react-redux";
+import { useTranslations } from "next-intl";
 import type { RootState } from "@/lib/store";
 import MessagesSidebar from "@/app/_components/MessagesSidebar";
 
@@ -11,7 +12,7 @@ import MessagesSidebar from "@/app/_components/MessagesSidebar";
 ─────────────────────────────────────────────────────────────── */
 const LEFT_NAV = [
   {
-    id: "new", label: "Bài học mới", href: "/my-lesson", requireAuth: false,
+    id: "new", labelKey: "nav_new", href: "/my-lesson", requireAuth: false,
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -19,7 +20,7 @@ const LEFT_NAV = [
     ),
   },
   {
-    id: "enrolled", label: "Khoá đã kích hoạt", href: "/my-courses", requireAuth: true,
+    id: "enrolled", labelKey: "nav_enrolled", href: "/my-courses", requireAuth: true,
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -27,7 +28,7 @@ const LEFT_NAV = [
     ),
   },
   {
-    id: "group", label: "Nhóm của tôi", href: "/nhom", requireAuth: true,
+    id: "group", labelKey: "nav_group", href: "/nhom", requireAuth: true,
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -35,7 +36,7 @@ const LEFT_NAV = [
     ),
   },
   {
-    id: "following", label: "Đang theo dõi", href: "/following", requireAuth: true,
+    id: "following", labelKey: "nav_following", href: "/following", requireAuth: true,
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -43,7 +44,7 @@ const LEFT_NAV = [
     ),
   },
   {
-    id: "saved", label: "Đã lưu", href: "/saved", requireAuth: true,
+    id: "saved", labelKey: "nav_saved", href: "/saved", requireAuth: true,
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -51,7 +52,7 @@ const LEFT_NAV = [
     ),
   },
   {
-    id: "liked", label: "Đã thích", href: "/liked", requireAuth: true,
+    id: "liked", labelKey: "nav_liked", href: "/liked", requireAuth: true,
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -59,7 +60,7 @@ const LEFT_NAV = [
     ),
   },
   {
-    id: "friends", label: "Bạn bè", href: "/friends", requireAuth: true,
+    id: "friends", labelKey: "nav_friends", href: "/friends", requireAuth: true,
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -82,8 +83,10 @@ interface AppShellProps {
    APP SHELL  (Col 1 + Col 2 + children)
 ─────────────────────────────────────────────────────────────── */
 export default function AppShell({ children, activeNavId }: AppShellProps) {
+  const t = useTranslations("app_shell");
   const isLoggedIn = useSelector((s: RootState) => !!s.auth?.accessToken);
   const [activeNav, setActiveNav] = useState(activeNavId ?? "new");
+  const [col2Visible, setCol2Visible] = useState(true);
 
   return (
     <>
@@ -130,6 +133,7 @@ export default function AppShell({ children, activeNavId }: AppShellProps) {
           {LEFT_NAV.map((item) => {
             const locked = item.requireAuth && !isLoggedIn;
             const active = activeNav === item.id;
+            const label = t(item.labelKey as 'nav_new');
             const cls = [
               "mls-shell-nav-item",
               active ? "is-active" : "",
@@ -141,19 +145,52 @@ export default function AppShell({ children, activeNavId }: AppShellProps) {
                 href={locked ? "/login" : item.href}
                 onClick={() => !locked && setActiveNav(item.id)}
                 className={cls}
-                title={item.label}
+                title={label}
               >
                 {item.icon}
-                <span>{item.label}</span>
+                <span>{label}</span>
               </Link>
             );
           })}
+
+
         </aside>
 
         {/* COL 2: Messages — shared MessagesSidebar */}
-        <Suspense fallback={null}>
-          <MessagesSidebar />
-        </Suspense>
+        {col2Visible ? (
+          <div className="mls-col2" style={{ display: "flex" }}>
+            <Suspense fallback={null}>
+              <MessagesSidebar onToggle={() => setCol2Visible(false)} />
+            </Suspense>
+          </div>
+        ) : (
+          <div
+            className="mls-col2"
+            style={{
+              width: 28, flexShrink: 0, background: "white",
+              borderRight: "1px solid #e5e7eb", display: "flex",
+              flexDirection: "column", alignItems: "center",
+              paddingTop: 10, zIndex: 10,
+            }}
+          >
+            <button
+              onClick={() => setCol2Visible(true)}
+              title={t("show_messages")}
+              style={{
+                width: 22, height: 22, borderRadius: "50%", border: "1px solid #E5E7EB",
+                background: "#F9FAFB", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#6B7280",
+              }}
+            >
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <line x1="9" y1="3" x2="9" y2="21" strokeLinecap="round" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9l3 3-3 3" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* MAIN CONTENT (col 3+4, or just col 3) — provided by caller */}
         {children}
@@ -163,11 +200,11 @@ export default function AppShell({ children, activeNavId }: AppShellProps) {
       {/* MOBILE BOTTOM NAV (hidden on desktop) */}
       <nav className="mls-mobile-nav">
         {[
-          { href: "/",              icon: "📚", label: "Học" },
-          { href: "/courses",       icon: "🎓", label: "Khoá học" },
-          { href: "/placement-test",icon: "✏️", label: "Thi thử" },
-          { href: "/giao-vien",     icon: "👨‍🏫", label: "Giáo viên" },
-          { href: "/profile",       icon: "👤", label: "Tôi" },
+          { href: "/",              icon: "📚", label: t("mb_learn") },
+          { href: "/courses",       icon: "🎓", label: t("mb_courses") },
+          { href: "/placement-test",icon: "✏️", label: t("mb_placement") },
+          { href: "/giao-vien",     icon: "👨‍🏫", label: t("mb_teachers") },
+          { href: "/profile",       icon: "👤", label: t("mb_me") },
         ].map(({ href, icon, label }) => (
           <a key={href} href={href} style={{
             display: "flex", flexDirection: "column", alignItems: "center", gap: 2,

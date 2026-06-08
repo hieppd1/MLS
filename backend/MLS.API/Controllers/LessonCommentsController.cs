@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MLS.Application.QA.Commands;
@@ -135,6 +135,95 @@ public class SessionQaCommentsController(IMediator mediator) : ControllerBase
         {
             var dto = await mediator.Send(
                 new CreateLessonCommentCommand(userId, null, sessionId, body.Content, body.ParentId), ct);
+            return Ok(dto);
+        }
+        catch (InvalidOperationException ex) { return UnprocessableEntity(new { message = ex.Message }); }
+    }
+
+    [HttpDelete("{commentId:guid}")]
+    [Authorize]
+    public async Task<IActionResult> Delete(Guid commentId, CancellationToken ct = default)
+    {
+        if (CurrentUserId is not { } userId) return Unauthorized();
+        try
+        {
+            await mediator.Send(new DeleteLessonCommentCommand(commentId, userId, CurrentUserRole), ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
+    }
+
+    [HttpPost("{commentId:guid}/upvote")]
+    [Authorize]
+    public async Task<IActionResult> Upvote(Guid commentId, CancellationToken ct = default)
+    {
+        if (CurrentUserId is not { } userId) return Unauthorized();
+        try
+        {
+            var upvoted = await mediator.Send(new ToggleUpvoteCommand(commentId, userId), ct);
+            return Ok(new { upvoted });
+        }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+    }
+
+    [HttpPost("{commentId:guid}/pin")]
+    [Authorize]
+    public async Task<IActionResult> Pin(Guid commentId, CancellationToken ct = default)
+    {
+        if (CurrentUserId is not { } userId) return Unauthorized();
+        try
+        {
+            var pinned = await mediator.Send(new TogglePinCommand(commentId, userId, CurrentUserRole), ct);
+            return Ok(new { pinned });
+        }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+    }
+}
+
+/// <summary>Flat route /api/v1/lesson-comments used by frontend RTK Query client.</summary>
+[ApiController]
+[Route("api/v1/lesson-comments")]
+public class LessonCommentsFlatController(IMediator mediator) : ControllerBase
+{
+    private Guid? CurrentUserId
+    {
+        get
+        {
+            var sub = User.FindFirst("sub")?.Value
+                ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            return sub != null && Guid.TryParse(sub, out var id) ? id : null;
+        }
+    }
+
+    private string CurrentUserRole =>
+        User.FindFirst("role")?.Value ?? "Student";
+
+    [HttpGet]
+    public async Task<IActionResult> List(
+        [FromQuery] Guid? lessonId,
+        [FromQuery] Guid? sessionId,
+        [FromQuery] Guid? cursor,
+        [FromQuery] int limit = 20,
+        CancellationToken ct = default)
+    {
+        var result = await mediator.Send(
+            new GetLessonCommentsQuery(lessonId, sessionId, CurrentUserId, cursor, Math.Clamp(limit, 1, 50)), ct);
+        return Ok(result);
+    }
+
+    public record CreateCommentRequest(string Content, Guid? LessonId, Guid? SessionId, Guid? ParentId);
+
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> Create([FromBody] CreateCommentRequest body, CancellationToken ct = default)
+    {
+        if (CurrentUserId is not { } userId) return Unauthorized();
+        try
+        {
+            var dto = await mediator.Send(
+                new CreateLessonCommentCommand(userId, body.LessonId, body.SessionId, body.Content, body.ParentId), ct);
             return Ok(dto);
         }
         catch (InvalidOperationException ex) { return UnprocessableEntity(new { message = ex.Message }); }

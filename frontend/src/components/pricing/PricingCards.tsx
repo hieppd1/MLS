@@ -12,17 +12,16 @@ import {
 import { useGetPublicCourseQuery } from "@/lib/features/courses/coursesApi";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { addToCart } from "@/lib/features/cart/cartSlice";
+import { useFormatters } from "@/lib/hooks/useFormatters";
+import { useTranslations } from "next-intl";
 
-function formatPrice(price: number) {
-  if (price === 0) return "Miễn phí";
-  return price.toLocaleString("vi-VN") + "đ";
-}
-
-function formatDuration(days: number) {
-  if (days === 0) return "Trọn đời";
-  if (days < 30) return `${days} ngày`;
-  const months = Math.round(days / 30);
-  return `${months} tháng`;
+function useFormatDuration() {
+  const t = useTranslations("course_plans");
+  return (days: number) => {
+    if (days === 0) return t("duration_forever");
+    if (days < 30) return t("duration_days", { n: days });
+    return t("duration_months", { n: Math.round(days / 30) });
+  };
 }
 
 interface Props {
@@ -33,6 +32,7 @@ interface Props {
 export default function PricingCards({ courseId, onEnrolled }: Props) {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const t = useTranslations("course_plans");
   const [purchasing, setPurchasing] = useState<string | null>(null);
 
   const isAuthenticated = useAppSelector((s) => !!s.auth.accessToken);
@@ -55,7 +55,7 @@ export default function PricingCards({ courseId, onEnrolled }: Props) {
       await purchasePackage({ courseId, packageId: pkg.id }).unwrap();
       onEnrolled?.();
     } catch {
-      alert("Đăng ký thất bại. Vui lòng thử lại.");
+      alert(t("buy_failed"));
     } finally {
       setPurchasing(null);
     }
@@ -86,7 +86,7 @@ export default function PricingCards({ courseId, onEnrolled }: Props) {
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
-        <div className="animate-pulse text-gray-400 text-sm">Đang tải gói học...</div>
+        <div className="animate-pulse text-gray-400 text-sm">{t("loading")}</div>
       </div>
     );
   }
@@ -106,8 +106,8 @@ export default function PricingCards({ courseId, onEnrolled }: Props) {
           <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
             <Zap size={14} className="text-white" fill="currentColor" />
           </div>
-          <h3 className="font-bold text-white text-sm tracking-wide">Gói khóa học</h3>
-          <span className="ml-auto text-white/60 text-xs">{packages.length} gói</span>
+          <h3 className="font-bold text-white text-sm tracking-wide">{t("header")}</h3>
+          <span className="ml-auto text-white/60 text-xs">{t("count", { count: packages.length })}</span>
         </div>
       </div>
 
@@ -125,33 +125,41 @@ export default function PricingCards({ courseId, onEnrolled }: Props) {
 
 // ─── Sub-cards ─────────────────────────────────────────────────────────────────
 
-const FEATURE_LABELS: Record<string, string> = {
-  video_learning: "Video bài học",
-  basic_quiz: "Quiz kiểm tra",
-  vocabulary_package: "Bộ từ vựng",
-  grammar_practice: "Luyện ngữ pháp",
-  realtime_comments: "Bình luận realtime",
-  speaking_ai: "AI Speaking",
-  writing_ai: "AI Writing",
-  teacher_support: "Hỗ trợ giáo viên 1-1",
+const FEATURE_KEYS: Record<string, string> = {
+  video_learning: "feat_video",
+  basic_quiz: "feat_basic_quiz",
+  vocabulary_package: "feat_vocab",
+  grammar_practice: "feat_grammar",
+  realtime_comments: "feat_realtime",
+  speaking_ai: "feat_speaking",
+  writing_ai: "feat_writing",
+  teacher_support: "feat_teacher",
 };
 
-function pickFeatures(pkg: PackageDto, max = 3): string[] {
-  const enabled = pkg.entitlements.filter((e) => e.enabled);
-  return enabled.slice(0, max).map((e) => FEATURE_LABELS[e.featureCode] ?? e.featureCode);
+function usePickFeatures() {
+  const t = useTranslations("course_plans");
+  return (pkg: PackageDto, max = 3): string[] => {
+    const enabled = pkg.entitlements.filter((e) => e.enabled);
+    return enabled.slice(0, max).map((e) => {
+      const k = FEATURE_KEYS[e.featureCode];
+      return k ? t(k) : e.featureCode;
+    });
+  };
 }
 
 function BasicCard({ pkg, owned, busy, onClick }: { pkg: PackageDto; owned: boolean; busy: boolean; onClick: () => void }) {
+  const t = useTranslations("course_plans");
+  const pickFeatures = usePickFeatures();
   const features = pickFeatures(pkg);
   return (
     <div className="bg-white rounded-lg shadow border border-gray-200 p-4">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <div className="text-xs text-gray-500 uppercase tracking-wide">BASIC</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wide">{t("tier_basic")}</div>
           <h4 className="font-bold">{pkg.title}</h4>
         </div>
         <div className="text-right">
-          <div className="text-xl font-bold text-gray-900">Miễn phí</div>
+          <div className="text-xl font-bold text-gray-900">{t("free_label")}</div>
         </div>
       </div>
       <ul className="space-y-2 mb-3 text-sm">
@@ -171,7 +179,7 @@ function BasicCard({ pkg, owned, busy, onClick }: { pkg: PackageDto; owned: bool
             : "bg-gray-900 hover:bg-gray-800 text-white"
         } disabled:opacity-70`}
       >
-        {busy ? "Đang xử lý..." : owned ? "✓ Đã đăng ký" : "Đăng ký miễn phí"}
+        {busy ? t("processing") : owned ? t("enrolled") : t("enroll_free")}
       </button>
     </div>
   );
@@ -188,10 +196,14 @@ function PaidCard({
   owned: boolean;
   onClick: () => void;
 }) {
+  const t = useTranslations("course_plans");
+  const pickFeatures = usePickFeatures();
+  const formatDuration = useFormatDuration();
   const isStandard = tier === "standard";
   const hasDiscount = pkg.salePrice > 0 && pkg.salePrice < pkg.originalPrice;
   const effectivePrice = hasDiscount ? pkg.salePrice : pkg.originalPrice;
   const features = pickFeatures(pkg);
+  const { fmtCurrency } = useFormatters();
 
   const bg = isStandard
     ? "bg-gradient-to-br from-blue-500 to-blue-600"
@@ -200,8 +212,8 @@ function PaidCard({
   const lineThroughText = isStandard ? "text-blue-200" : "text-orange-200";
   const subText = isStandard ? "text-blue-100" : "text-orange-100";
   const btnText = isStandard ? "text-blue-600 hover:bg-blue-50" : "text-orange-600 hover:bg-orange-50";
-  const tierLabel = isStandard ? "STANDARD" : "ADVANCE";
-  const badgeLabel = isStandard ? "PHỔ BIẾN" : "CAO CẤP";
+  const tierLabel = isStandard ? t("tier_standard") : t("tier_advance");
+  const badgeLabel = isStandard ? t("badge_popular") : t("badge_premium");
 
   return (
     <div className={`${bg} rounded-lg shadow-lg p-4 text-white relative`}>
@@ -215,9 +227,9 @@ function PaidCard({
         </div>
         <div className="text-right">
           {hasDiscount && (
-            <div className={`text-xs line-through ${lineThroughText}`}>{formatPrice(pkg.originalPrice)}</div>
+            <div className={`text-xs line-through ${lineThroughText}`}>{fmtCurrency(pkg.originalPrice)}</div>
           )}
-          <div className="text-2xl font-bold">{formatPrice(effectivePrice)}</div>
+          <div className="text-2xl font-bold">{fmtCurrency(effectivePrice)}</div>
           <div className={`text-xs ${subText}`}>/ {formatDuration(pkg.durationDay)}</div>
         </div>
       </div>
@@ -234,7 +246,7 @@ function PaidCard({
         onClick={onClick}
         className={`w-full bg-white font-bold py-2.5 rounded-lg transition-colors text-sm ${btnText} disabled:opacity-70 disabled:cursor-default`}
       >
-        {owned ? "✓ Đã sở hữu" : `Mua ngay – ${formatPrice(effectivePrice)}`}
+        {owned ? t("owned") : t("buy_now", { price: fmtCurrency(effectivePrice) })}
       </button>
     </div>
   );

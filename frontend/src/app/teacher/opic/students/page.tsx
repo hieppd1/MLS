@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { formatDate } from "@/lib/i18nFormat";
 import {
   useGetOPICStudentsQuery,
   type OPICStudentResultItem,
@@ -26,10 +28,11 @@ function MiniBar({ value, color, max = 10 }: { value: number; color: string; max
 }
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("vi-VN");
+  return formatDate(iso);
 }
 
 export default function OPICStudentsPage() {
+  const t = useTranslations("teacher_opic_students");
   const [page, setPage] = useState(1);
   const [levelFilter, setLevelFilter] = useState("");
   const PAGE_SIZE = 20;
@@ -47,14 +50,14 @@ export default function OPICStudentsPage() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827", margin: 0 }}>Kết quả học viên OPIC</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827", margin: 0 }}>{t("title")}</h1>
           <p style={{ fontSize: 13, color: "#9CA3AF", marginTop: 4 }}>
-            {data?.total ?? 0} kết quả tổng cộng
+            {t("count", { n: data?.total ?? 0 })}
           </p>
         </div>
         <Link href="/teacher/opic"
           style={{ padding: "9px 18px", borderRadius: 10, border: `1px solid ${MLS_NAVY}`, color: MLS_NAVY, textDecoration: "none", fontSize: 13, fontWeight: 600 }}>
-          ← Analytics
+          {t("back")}
         </Link>
       </div>
 
@@ -69,7 +72,7 @@ export default function OPICStudentsPage() {
               color: levelFilter === lvl ? (LEVEL_COLORS[lvl] ?? MLS_NAVY) : "#6B7280",
               cursor: "pointer", fontSize: 12, fontWeight: 600,
             }}>
-            {lvl || "Tất cả"}
+            {lvl || t("all")}
           </button>
         ))}
       </div>
@@ -78,13 +81,13 @@ export default function OPICStudentsPage() {
         <div style={{ textAlign: "center", padding: "60px 0", color: "#9CA3AF" }}>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           <div style={{ width: 36, height: 36, border: "4px solid #E5E7EB", borderTopColor: MLS_NAVY, borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 12px" }} />
-          Đang tải...
+          {t("loading")}
         </div>
       )}
 
       {!isLoading && error && (
         <div style={{ padding: "20px 24px", borderRadius: 12, background: "#FEF2F2", color: "#DC2626", fontSize: 14 }}>
-          Không thể tải dữ liệu. Vui lòng thử lại.
+          {t("load_error")}
         </div>
       )}
 
@@ -93,7 +96,7 @@ export default function OPICStudentsPage() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#F9FAFB", borderBottom: "2px solid #E5E7EB" }}>
-                {["Học viên", "Level", "Tổng điểm", "Kỹ năng (hover = điểm)", "Ngôn ngữ", "Ngày thi"].map((h) => (
+                {[t("col_student"), t("col_level"), t("col_total"), t("col_skills"), t("col_language"), t("col_date")].map((h) => (
                   <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: 12, fontWeight: 700, color: "#6B7280", whiteSpace: "nowrap" }}>
                     {h}
                   </th>
@@ -104,7 +107,7 @@ export default function OPICStudentsPage() {
               {items.length === 0 && (
                 <tr>
                   <td colSpan={6} style={{ padding: "32px 16px", textAlign: "center", color: "#9CA3AF", fontSize: 14 }}>
-                    Không có dữ liệu
+                    {t("empty")}
                   </td>
                 </tr>
               )}

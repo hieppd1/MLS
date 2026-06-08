@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import * as signalR from "@microsoft/signalr";
 import {
   useJoinRoomMutation,
@@ -47,6 +48,7 @@ function getToken(): string | null {
 export default function RealtimePlayPage() {
   const { code } = useParams<{ code: string }>();
   const router = useRouter();
+  const t = useTranslations("realtime_player");
   const connectionRef = useRef<signalR.HubConnection | null>(null);
 
   const [stage, setStage] = useState<Stage>("joining");
@@ -183,7 +185,7 @@ export default function RealtimePlayPage() {
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 to-purple-900 flex items-center justify-center text-white">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-lg">Đang tham gia phòng {code}...</p>
+          <p className="text-lg">{t("joining_room", { code })}</p>
         </div>
       </div>
     );
@@ -193,8 +195,8 @@ export default function RealtimePlayPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 to-purple-900 flex flex-col items-center justify-center text-white">
         <div className="text-6xl mb-6 animate-pulse">⏳</div>
-        <h1 className="text-3xl font-bold mb-4">Phòng: {code}</h1>
-        <p className="text-indigo-200 text-lg">Chờ giáo viên bắt đầu quiz...</p>
+        <h1 className="text-3xl font-bold mb-4">{t("room_label", { code })}</h1>
+        <p className="text-indigo-200 text-lg">{t("waiting_teacher")}</p>
         <div className="mt-8 flex gap-2">
           {[...Array(3)].map((_, i) => (
             <div
@@ -212,12 +214,12 @@ export default function RealtimePlayPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 to-purple-900 flex flex-col items-center justify-center text-white">
         <div className="text-6xl mb-4">🏆</div>
-        <h1 className="text-3xl font-bold mb-2">Quiz kết thúc!</h1>
+        <h1 className="text-3xl font-bold mb-2">{t("quiz_ended")}</h1>
         <p className="text-indigo-200 mb-8">
-          Điểm của bạn: <span className="font-bold text-yellow-300 text-2xl">{totalScore}</span>
+          {t("your_score")} <span className="font-bold text-yellow-300 text-2xl">{totalScore}</span>
         </p>
         <div className="bg-white/10 rounded-2xl p-6 w-full max-w-sm">
-          <h2 className="text-xl font-bold mb-4 text-center">Bảng xếp hạng</h2>
+          <h2 className="text-xl font-bold mb-4 text-center">{t("leaderboard")}</h2>
           {leaderboard.slice(0, 5).map((e, i) => (
             <div key={e.userId} className="flex justify-between items-center py-2 border-b border-white/20 last:border-0">
               <span className="font-bold">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}</span>
@@ -230,7 +232,7 @@ export default function RealtimePlayPage() {
           onClick={() => router.push("/")}
           className="mt-8 bg-white text-indigo-700 font-bold px-8 py-3 rounded-xl hover:bg-indigo-50 transition"
         >
-          Về trang chủ
+          {t("back_home")}
         </button>
       </div>
     );
@@ -266,7 +268,7 @@ export default function RealtimePlayPage() {
             />
           </div>
         </div>
-        <span className="text-yellow-300 font-bold text-lg">{totalScore} pts</span>
+        <span className="text-yellow-300 font-bold text-lg">{totalScore} {t("points_suffix")}</span>
       </div>
 
       {/* Question */}
@@ -285,14 +287,14 @@ export default function RealtimePlayPage() {
           <div className={`rounded-2xl p-8 w-full max-w-2xl text-center ${isCorrect ? "bg-green-600" : "bg-red-600"}`}>
             <div className="text-5xl mb-3">{isCorrect ? "✅" : "❌"}</div>
             <p className="text-white text-2xl font-bold">
-              {isCorrect ? `+${pointsEarned} điểm!` : "Chưa đúng"}
+              {isCorrect ? t("points_earned", { points: pointsEarned }) : t("incorrect")}
             </p>
-            <p className="text-white/80 mt-2">Chờ câu tiếp theo...</p>
+            <p className="text-white/80 mt-2">{t("wait_next")}</p>
           </div>
         ) : stage === "answered" ? (
           <div className="rounded-2xl p-8 w-full max-w-2xl text-center bg-gray-700">
             <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-white">Đang tính điểm...</p>
+            <p className="text-white">{t("scoring")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4 w-full max-w-2xl">

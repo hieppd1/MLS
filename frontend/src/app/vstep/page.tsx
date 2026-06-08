@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import AppShell from "../_components/AppShell";
 import {
   useGetPublishedQuizzesQuery,
@@ -33,6 +34,8 @@ function VSTEPContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const presetQuizId = searchParams.get("quizId") ?? "";
+  const t = useTranslations("vstep");
+  const tv = useTranslations("vstep_intro");
 
   const user = useAppSelector((s: RootState) => s.auth.user);
   const { data: quizzes = [], isLoading } = useGetPublishedQuizzesQuery("VSTEPMockTest");
@@ -78,10 +81,10 @@ function VSTEPContent() {
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ fontSize: 48, marginBottom: 8 }}>🏅</div>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", margin: 0 }}>
-            Thi thử VSTEP
+            {t("title")}
           </h1>
           <p style={{ color: "#6B7280", marginTop: 8, fontSize: 15 }}>
-            Bài kiểm tra năng lực tiếng Anh 4 kỹ năng theo chuẩn VSTEP Việt Nam
+            {tv("subtitle")}
           </p>
         </div>
 
@@ -90,10 +93,10 @@ function VSTEPContent() {
           display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32,
         }}>
           {[
-            { part: "Nghe", icon: "🎧", q: "35 câu", time: "40 phút", color: "#3B82F6" },
-            { part: "Đọc",  icon: "📖", q: "40 câu", time: "60 phút", color: "#10B981" },
-            { part: "Viết", icon: "✍️",  q: "2 tasks", time: "60 phút", color: "#F59E0B" },
-            { part: "Nói",  icon: "🎙",  q: "3 phần", time: "12 phút", color: "#EF4444" },
+            { part: t("listening"), icon: "🎧", q: tv("questions_unit", { count: 35 }), time: tv("minutes_unit", { count: 40 }), color: "#3B82F6" },
+            { part: t("reading"),   icon: "📖", q: tv("questions_unit", { count: 40 }), time: tv("minutes_unit", { count: 60 }), color: "#10B981" },
+            { part: t("writing"),   icon: "✍️",  q: tv("tasks_unit", { count: 2 }), time: tv("minutes_unit", { count: 60 }), color: "#F59E0B" },
+            { part: t("speaking"),  icon: "🎙",  q: tv("parts_unit", { count: 3 }), time: tv("minutes_unit", { count: 12 }), color: "#EF4444" },
           ].map(p => (
             <div key={p.part} style={{
               background: "white", borderRadius: 12, padding: 16, textAlign: "center",
@@ -110,7 +113,7 @@ function VSTEPContent() {
 
         <div style={{ background: "white", borderRadius: 16, padding: 28, boxShadow: "0 2px 12px rgba(0,0,0,.08)" }}>
           {/* Quiz selection */}
-          <h3 style={{ fontWeight: 600, fontSize: 15, color: "#111827", marginBottom: 12 }}>Đề thi đã chọn</h3>
+          <h3 style={{ fontWeight: 600, fontSize: 15, color: "#111827", marginBottom: 12 }}>{tv("quiz_section")}</h3>
           {presetQuizId && presetQuiz ? (
             <div style={{
               display: "flex", alignItems: "center", gap: 12,
@@ -123,7 +126,7 @@ function VSTEPContent() {
                   <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>{presetQuiz.description}</div>
                 )}
                 <div style={{ fontSize: 12, color: "#EA580C", marginTop: 2, fontWeight: 500 }}>
-                  {PART_ROUTE[presetQuiz.quizType] ? `Phần: ${presetQuiz.quizType.replace("VSTEP", "")}` : presetQuiz.quizType}
+                  {PART_ROUTE[presetQuiz.quizType] ? `${tv("part_prefix")}: ${presetQuiz.quizType.replace("VSTEP", "")}` : presetQuiz.quizType}
                 </div>
               </div>
               <span style={{ fontSize: 18 }}>✅</span>
@@ -166,7 +169,7 @@ function VSTEPContent() {
 
           {/* Target band */}
           <h3 style={{ fontWeight: 600, fontSize: 15, color: "#111827", margin: "24px 0 12px" }}>
-            Mục tiêu band (tùy chọn)
+            {tv("target_band_header")}
           </h3>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button
@@ -178,7 +181,7 @@ function VSTEPContent() {
                 color: !targetBand ? "#EA580C" : "#6B7280",
               }}
             >
-              Không chọn
+              {tv("no_band")}
             </button>
             {TARGET_BANDS.map(b => (
               <button
@@ -201,9 +204,8 @@ function VSTEPContent() {
             marginTop: 16, padding: 12, background: "#F9FAFB", borderRadius: 8,
             fontSize: 13, color: "#6B7280", lineHeight: 1.6,
           }}>
-            <strong style={{ color: "#374151" }}>Thang điểm:</strong>{" "}
-            Mỗi kỹ năng 0–10 điểm. Band C1: TB ≥ 8.0 & thấp nhất ≥ 6.0 |
-            B2: TB ≥ 6.0 & thấp nhất ≥ 4.0 | B1: TB ≥ 4.0 | A2: TB ≥ 2.5
+            <strong style={{ color: "#374151" }}>{tv("scoring_label")}:</strong>{" "}
+            {tv("scoring_text")}
           </div>
 
           {error && (
@@ -222,7 +224,7 @@ function VSTEPContent() {
               transition: "background 0.15s",
             }}
           >
-            {creating ? "Đang tạo phiên thi..." : "Bắt đầu thi VSTEP →"}
+            {creating ? "" : `${tv("start_button")} →`}
           </button>
         </div>
       </div>

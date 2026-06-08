@@ -59,9 +59,9 @@ try
         c.OperationFilter<TenantHeaderOperationFilter>();
     });
 
-    builder.Services.AddLocalization(opts => opts.ResourcesPath = "Resources");
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
+    builder.Services.AddLocalization();
 
     // Prevent background service failures from stopping the host (dev-friendly)
     builder.Services.Configure<HostOptions>(opts =>
@@ -104,6 +104,13 @@ try
 
     app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseCors();
+    app.UseRequestLocalization(options =>
+    {
+        var supported = new[] { "vi", "en", "ko" };
+        options.SetDefaultCulture("vi")
+               .AddSupportedCultures(supported)
+               .AddSupportedUICultures(supported);
+    });
     app.UseWebSockets();
 
     // Serve stored media files BEFORE TenantMiddleware — browser video requests
@@ -147,6 +154,13 @@ try
            .AllowCredentials());
 
     app.MapHub<MLS.Infrastructure.Hubs.SupportChatHub>("/hubs/support")
+       .RequireCors(policy => policy
+           .WithOrigins(allowedOrigins)
+           .AllowAnyHeader()
+           .AllowAnyMethod()
+           .AllowCredentials());
+
+    app.MapHub<MLS.Infrastructure.Hubs.NotificationHub>("/hubs/notifications")
        .RequireCors(policy => policy
            .WithOrigins(allowedOrigins)
            .AllowAnyHeader()

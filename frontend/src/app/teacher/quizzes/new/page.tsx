@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCreateQuizMutation } from "@/lib/features/quiz/quizApi";
 import { useListQuestionsQuery, useAddQuestionToQuizMutation } from "@/lib/features/quiz/questionApi";
 import type { QuestionListItem } from "@/lib/features/quiz/questionApi";
@@ -30,63 +31,46 @@ interface QuizForm {
   showCorrectAnswer: boolean;
 }
 
-const SKILL_OPTIONS = [{ value: "", label: "— Tất cả kỹ năng —" }, ...SKILL_TYPES];
 
-const PLATFORM_CARDS: {
-  mode: ExamMode;
-  label: string;
-  desc: string;
-  color: string;
-  textColor: string;
-  available: boolean;
-}[] = [
-  {
-    mode: "Standard",
-    label: "Tiêu chuẩn (Standard)",
-    desc: "Bài kiểm tra thông thường: xếp lớp, luyện tập, thi thử, ngữ pháp, từ vựng, nói, viết.",
-    color: "#EFF6FF",
-    textColor: "#1D4ED8",
-    available: true,
-  },
-  {
-    mode: "OPIC",
-    label: "OPIC",
-    desc: "Bài kiểm tra nói theo chuẩn OPIC: câu hỏi có audio, giới hạn thời gian trả lời và số lần nghe.",
-    color: "#F0FDF4",
-    textColor: "#15803D",
-    available: true,
-  },
-  {
-    mode: "VSTEP",
-    label: "VSTEP",
-    desc: "Bài kiểm tra theo chuẩn VSTEP: Nghe (35 MCQ), Đọc (40 MCQ), Viết (2 tasks), Nói (3 phần). Hỗ trợ đoạn văn/audio theo nhóm.",
-    color: "#FFF7ED",
-    textColor: "#C2410C",
-    available: true,
-  },
+const PLATFORM_CARDS_DATA: { mode: ExamMode; color: string; textColor: string; available: boolean; }[] = [
+  { mode: "Standard", color: "#EFF6FF", textColor: "#1D4ED8", available: true },
+  { mode: "OPIC", color: "#F0FDF4", textColor: "#15803D", available: true },
+  { mode: "VSTEP", color: "#FFF7ED", textColor: "#C2410C", available: true },
 ];
 
-const STEP_LABELS = [
-  "Chọn nền tảng",
-  "Thông tin cơ bản",
-  "Chọn câu hỏi",
-  "Xác nhận",
-];
+const STEP_KEYS = ["step_platform", "step_info", "step_questions", "step_confirm"] as const;
 
-const QUESTION_TYPE_LABELS: Record<string, string> = {
-  SingleChoice: "1 đáp án",
-  MultipleChoice: "Nhiều đáp án",
-  TrueFalse: "Đúng/Sai",
-  FillBlank: "Điền vào chỗ trống",
-  Speaking: "Nói",
-  SpeakingRecording: "Ghi âm",
-  OPICRolePlay: "OPIC Nhập vai",
-};
+const QUESTION_TYPE_KEYS: string[] = [
+  "SingleChoice", "MultipleChoice", "TrueFalse", "FillBlank",
+  "Speaking", "SpeakingRecording", "OPICRolePlay",
+];
 
 export default function NewQuizPage() {
+  const t = useTranslations("teacher_quizzes_new");
   const router = useRouter();
   const [step, setStep] = useState<Step>(0);
   const [examMode, setExamMode] = useState<ExamMode>("Standard");
+
+  const SKILL_OPTIONS_LOCAL = useMemo(() => [{ value: "", label: t("all_skills") }, ...SKILL_TYPES], [t]);
+
+  const PLATFORM_CARDS = useMemo(() => PLATFORM_CARDS_DATA.map((card) => ({
+    ...card,
+    label: card.mode === "Standard" ? t("platform_standard") : card.mode,
+    desc: card.mode === "Standard" ? t("platform_standard_desc")
+         : card.mode === "OPIC" ? t("platform_opic_desc")
+         : t("platform_vstep_desc"),
+  })), [t]);
+
+  const tQType = useTranslations("question_type_labels");
+  const QUESTION_TYPE_LABELS: Record<string, string> = useMemo(() => ({
+    SingleChoice: tQType("single"),
+    MultipleChoice: tQType("multiple"),
+    TrueFalse: tQType("true_false"),
+    FillBlank: tQType("fill_blank"),
+    Speaking: tQType("speaking"),
+    SpeakingRecording: tQType("recording"),
+    OPICRolePlay: tQType("opic_roleplay"),
+  }), [tQType]);
 
   // Load quiz types from API; fall back to static portalConfig values
   const { data: apiQuizTypes = [] } = useListQuizTypesQuery(
@@ -97,7 +81,7 @@ export default function NewQuizPage() {
   // Build quiz type options: prefer API, fall back to static
   const currentQuizTypes = useMemo<{ value: string; label: string }[]>(() => {
     if (apiQuizTypes.length > 0) {
-      return apiQuizTypes.map((t) => ({ value: t.value, label: t.label }));
+      return apiQuizTypes.map((qt) => ({ value: qt.value, label: qt.label }));
     }
     return QUIZ_TYPES_BY_MODE[examMode] as { value: string; label: string }[];
   }, [apiQuizTypes, examMode]);
@@ -137,7 +121,7 @@ export default function NewQuizPage() {
   }
 
   async function handleCreate() {
-    if (!form.title.trim()) { setError("Tên quiz không được để trống"); return; }
+    if (!form.title.trim()) { setError(t("err_name")); return; }
     setError(null);
     try {
       const quiz = await createQuiz({
@@ -164,7 +148,7 @@ export default function NewQuizPage() {
 
       router.push(`/teacher/quizzes/${quiz.id}`);
     } catch {
-      setError("Tạo quiz thất bại. Vui lòng thử lại.");
+      setError(t("toast_fail"));
     }
   }
 
@@ -174,7 +158,7 @@ export default function NewQuizPage() {
     );
 
   const platformLabel =
-    examMode === "Standard" ? "Tiêu chuẩn" :
+    examMode === "Standard" ? t("platform_standard_short") :
     examMode === "OPIC"     ? "OPIC" : "VSTEP";
 
   return (
@@ -189,9 +173,9 @@ export default function NewQuizPage() {
             marginBottom: 16, padding: 0,
           }}
         >
-          ← Quay lại danh sách
+          {t("back")}
         </button>
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827" }}>Tạo Quiz mới</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827" }}>{t("title")}</h1>
       </div>
 
       {/* Step indicator */}
@@ -218,7 +202,7 @@ export default function NewQuizPage() {
                   whiteSpace: "nowrap",
                 }}
               >
-                {STEP_LABELS[s]}
+                {STEP_KEYS[s] ? t(STEP_KEYS[s]) : ""}
               </span>
             </div>
             {i < 3 && (
@@ -249,8 +233,8 @@ export default function NewQuizPage() {
       {step === 0 && (
         <div>
           <p style={{ color: "#6B7280", marginBottom: 24, fontSize: 14 }}>
-            Chọn nền tảng phù hợp. Nền tảng sẽ quyết định các loại bài kiểm tra và tính năng có sẵn.{" "}
-            <strong>Không thể thay đổi sau khi tạo.</strong>
+            {t("platform_desc")}{" "}
+            <strong>{t("platform_note")}</strong>
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {PLATFORM_CARDS.map((card) => (
@@ -307,7 +291,7 @@ export default function NewQuizPage() {
         >
           {/* Platform badge */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-            <span style={{ fontSize: 12, color: "#6B7280" }}>Nền tảng:</span>
+            <span style={{ fontSize: 12, color: "#6B7280" }}>{t("platform_label")}</span>
             <span
               style={{
                 padding: "3px 12px", borderRadius: 20, fontSize: 13, fontWeight: 700,
@@ -328,7 +312,7 @@ export default function NewQuizPage() {
                 border: "none", cursor: "pointer", textDecoration: "underline",
               }}
             >
-              Đổi nền tảng
+              {t("btn_change_platform")}
             </button>
           </div>
 
@@ -340,12 +324,12 @@ export default function NewQuizPage() {
                   color: "#374151", marginBottom: 6,
                 }}
               >
-                Tên quiz *
+                {t("field_name")}
               </label>
               <input
                 value={form.title}
                 onChange={(e) => setF("title", e.target.value)}
-                placeholder="Ví dụ: Kiểm tra từ vựng Unit 5"
+                placeholder={t("name_ph")}
                 style={{
                   width: "100%", padding: "10px 14px", borderRadius: 8,
                   border: "1px solid #D1D5DB", fontSize: 14, outline: "none",
@@ -366,7 +350,7 @@ export default function NewQuizPage() {
                 value={form.description}
                 onChange={(e) => setF("description", e.target.value)}
                 rows={3}
-                placeholder="Mô tả ngắn về bài kiểm tra..."
+                placeholder={t("desc_ph")}
                 style={{
                   width: "100%", padding: "10px 14px", borderRadius: 8,
                   border: "1px solid #D1D5DB", fontSize: 14, outline: "none",
@@ -392,9 +376,9 @@ export default function NewQuizPage() {
                     border: "1px solid #D1D5DB", fontSize: 14, background: "#fff",
                   }}
                 >
-                  {currentQuizTypes.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
+                  {currentQuizTypes.map((qt) => (
+                    <option key={qt.value} value={qt.value}>
+                      {qt.label}
                     </option>
                   ))}
                 </select>
@@ -416,7 +400,7 @@ export default function NewQuizPage() {
                     border: "1px solid #D1D5DB", fontSize: 14, background: "#fff",
                   }}
                 >
-                  {SKILL_OPTIONS.map((s) => (
+                  {SKILL_OPTIONS_LOCAL.map((s) => (
                     <option key={s.value} value={s.value}>
                       {s.label}
                     </option>
@@ -430,14 +414,14 @@ export default function NewQuizPage() {
                     color: "#374151", marginBottom: 6,
                   }}
                 >
-                  Thời gian (phút) — để trống = không giới hạn
+                  {t("field_duration")}
                 </label>
                 <input
                   value={form.timeLimitSeconds}
                   onChange={(e) => setF("timeLimitSeconds", e.target.value)}
                   type="number"
                   min="1"
-                  placeholder="Ví dụ: 30"
+                  placeholder={t("duration_ph")}
                   style={{
                     width: "100%", padding: "10px 14px", borderRadius: 8,
                     border: "1px solid #D1D5DB", fontSize: 14, boxSizing: "border-box",
@@ -469,8 +453,8 @@ export default function NewQuizPage() {
             <div style={{ display: "flex", gap: 24 }}>
               {(
                 [
-                  ["shuffleQuestions", "Câu hỏi ngẫu nhiên"],
-                  ["showCorrectAnswer", "Hiển thị đáp án sau khi nộp"],
+                  ["shuffleQuestions", t("chk_random")],
+                  ["showCorrectAnswer", t("chk_show_answers")],
                 ] as [keyof QuizForm, string][]
               ).map(([key, label]) => (
                 <label
@@ -503,7 +487,7 @@ export default function NewQuizPage() {
             </button>
             <button
               onClick={() => {
-                if (!form.title.trim()) { setError("Tên quiz không được để trống"); return; }
+                if (!form.title.trim()) { setError(t("err_name")); return; }
                 setError(null);
                 setStep(2);
               }}
@@ -513,7 +497,7 @@ export default function NewQuizPage() {
                 fontWeight: 700, fontSize: 15,
               }}
             >
-              Tiếp theo →
+              {t("btn_next")}
             </button>
           </div>
         </div>
@@ -531,7 +515,7 @@ export default function NewQuizPage() {
             <input
               value={qSearch}
               onChange={(e) => setQSearch(e.target.value)}
-              placeholder="Tìm câu hỏi..."
+              placeholder={t("search_ph")}
               style={{ flex: 1, padding: "8px 14px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 14 }}
             />
             <select
@@ -542,14 +526,14 @@ export default function NewQuizPage() {
                 fontSize: 14, background: "#fff",
               }}
             >
-              <option value="">Tất cả loại</option>
+              <option value="">{t("all_types")}</option>
               {Object.entries(QUESTION_TYPE_LABELS).map(([val, lbl]) => (
                 <option key={val} value={val}>{lbl}</option>
               ))}
             </select>
           </div>
           <div style={{ marginBottom: 12, fontSize: 13, color: "#6B7280" }}>
-            Đã chọn: <strong>{selectedIds.length}</strong> câu hỏi
+            {t.rich("selected", { n: selectedIds.length, strong: (chunks) => <strong>{chunks}</strong> })}
           </div>
           <div
             style={{
@@ -608,7 +592,7 @@ export default function NewQuizPage() {
             })}
             {(questions?.items ?? []).length === 0 && (
               <p style={{ textAlign: "center", color: "#9CA3AF", padding: "32px 0" }}>
-                Không có câu hỏi phù hợp
+                {t("no_questions")}
               </p>
             )}
           </div>
@@ -620,7 +604,7 @@ export default function NewQuizPage() {
                 background: "#fff", cursor: "pointer", fontWeight: 600,
               }}
             >
-              ← Trở lại
+              {t("btn_back")}
             </button>
             <button
               onClick={() => setStep(3)}
@@ -630,7 +614,7 @@ export default function NewQuizPage() {
                 fontWeight: 700, fontSize: 15,
               }}
             >
-              Tiếp theo →
+              {t("btn_next")}
             </button>
           </div>
         </div>
@@ -645,32 +629,32 @@ export default function NewQuizPage() {
           }}
         >
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", marginBottom: 20 }}>
-            Xác nhận thông tin
+            {t("confirm_heading")}
           </h2>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
             {[
-              { label: "Tên quiz", value: form.title },
-              { label: "Nền tảng", value: platformLabel },
+              { label: t("confirm_name"), value: form.title },
+              { label: t("confirm_platform"), value: platformLabel },
               {
-                label: "Loại quiz",
+                label: t("confirm_type"),
                 value:
-                  currentQuizTypes.find((t) => t.value === form.quizType)?.label ??
+                  currentQuizTypes.find((qt) => qt.value === form.quizType)?.label ??
                   form.quizType,
               },
               {
-                label: "Kỹ năng",
+                label: t("confirm_skill"),
                 value: form.skillType
                   ? (SKILL_LABEL[form.skillType] ?? form.skillType)
-                  : "Tất cả",
+                  : t("confirm_all"),
               },
               {
-                label: "Thời gian",
+                label: t("confirm_duration"),
                 value: form.timeLimitSeconds
-                  ? `${form.timeLimitSeconds} phút`
-                  : "Không giới hạn",
+                  ? t("confirm_minutes", { n: form.timeLimitSeconds })
+                  : t("confirm_unlimited"),
               },
-              { label: "Điểm đậu", value: `${form.passingScore}%` },
-              { label: "Câu hỏi đã chọn", value: `${selectedIds.length} câu` },
+              { label: t("confirm_pass_score"), value: `${form.passingScore}%` },
+              { label: t("confirm_questions"), value: t("confirm_questions_n", { n: selectedIds.length }) },
             ].map(({ label, value }) => (
               <div
                 key={label}
@@ -689,7 +673,7 @@ export default function NewQuizPage() {
                 background: "#fff", cursor: "pointer", fontWeight: 600,
               }}
             >
-              ← Trở lại
+              {t("btn_back")}
             </button>
             <button
               onClick={handleCreate}
@@ -701,7 +685,7 @@ export default function NewQuizPage() {
                 fontWeight: 700, fontSize: 15, opacity: creating ? 0.7 : 1,
               }}
             >
-              {creating ? "Đang tạo..." : "Tạo quiz ✓"}
+              {creating ? t("btn_creating") : t("btn_create")}
             </button>
           </div>
         </div>

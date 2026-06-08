@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAppSelector } from "@/lib/hooks";
+import { useTranslations } from "next-intl";
 
 /* ── Icon helpers ──────────────────────────────────────────────────── */
 const IcoDashboard = () => <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>;
@@ -31,40 +32,44 @@ type NavEntry =
   | { type: "link";  label: string; href: string; icon: React.ReactNode }
   | { type: "group"; label: string; key: string; icon: React.ReactNode; items: NavItem[] };
 
-const NAV_ENTRIES: NavEntry[] = [
-  { type: "link",  label: "Dashboard",          href: "/admin",                   icon: <IcoDashboard /> },
-  { type: "link",  label: "Doanh thu",           href: "/admin/analytics",         icon: <IcoRevenue /> },
-  { type: "group", label: "Quản lý khóa học",   key: "courses",                   icon: <IcoCourse />,
-    items: [
-      { label: "Khóa học",       href: "/admin/courses",           icon: <IcoCourse /> },
-      { label: "Duyệt nội dung", href: "/admin/content/approvals", icon: <IcoApprove /> },
-    ]},
-  { type: "link",  label: "Quản lý sách",        href: "/admin/sach",             icon: <IcoBook /> },
-  { type: "link",  label: "Đơn hàng",            href: "/admin/don-hang",         icon: <IcoOrder /> },
-  { type: "link",  label: "Voucher",             href: "/admin/vouchers",         icon: <IcoVoucher /> },
-  { type: "group", label: "Cấu hình hệ thống",  key: "config",                   icon: <IcoSettings />,
-    items: [
-      { label: "Banner khóa học",  href: "/admin/settings/banners", icon: <IcoBanner /> },
-      { label: "Cấu hình cấp độ",  href: "/admin/levels",           icon: <IcoLevels /> },
-    ]},
-  { type: "group", label: "Chat & Hỗ trợ",      key: "chat",                     icon: <IcoUsers />,
-    items: [
-      { label: "Quản lý nhóm chat", href: "/admin/chat/groups",   icon: <IcoUsers /> },
-      { label: "Cấu hình Chat",     href: "/admin/chat/config",   icon: <IcoSettings /> },
-      { label: "Hộp thư hỗ trợ",    href: "/admin/chat/support",  icon: <IcoUsers /> },
-    ]},
-  { type: "group", label: "Quản trị hệ thống",  key: "sysadmin",                 icon: <IcoAdmin />,
-    items: [
-      { label: "Quản lý người dùng",  href: "/admin/users", icon: <IcoUsers /> },
-      { label: "Vai trò & Phân quyền", href: "/admin/roles", icon: <IcoRoles /> },
-    ]},
-];
+function getNavEntries(t: (key: string) => string): NavEntry[] {
+  return [
+    { type: "link",  label: t("nav_dashboard"),     href: "/admin/analytics",         icon: <IcoDashboard /> },
+    { type: "group", label: t("nav_courses_group"), key: "courses",                   icon: <IcoCourse />,
+      items: [
+        { label: t("nav_courses"),   href: "/admin/courses",           icon: <IcoCourse /> },
+        { label: t("nav_approvals"), href: "/admin/content/approvals", icon: <IcoApprove /> },
+      ]},
+    { type: "link",  label: t("nav_books_group"),  href: "/admin/sach",             icon: <IcoBook /> },
+    { type: "link",  label: t("nav_orders"),        href: "/admin/don-hang",         icon: <IcoOrder /> },
+    { type: "link",  label: t("nav_shipments"),     href: "/admin/van-don",          icon: <IcoOrder /> },
+    { type: "link",  label: t("nav_vouchers"),      href: "/admin/vouchers",         icon: <IcoVoucher /> },
+    { type: "group", label: t("nav_system_group"),  key: "config",                   icon: <IcoSettings />,
+      items: [
+        { label: t("nav_banners"), href: "/admin/settings/banners", icon: <IcoBanner /> },
+        { label: t("nav_levels"),  href: "/admin/levels",           icon: <IcoLevels /> },
+      ]},
+    { type: "group", label: t("nav_chat_group"),    key: "chat",                     icon: <IcoUsers />,
+      items: [
+        { label: t("nav_chat_groups"),   href: "/admin/chat/groups",  icon: <IcoUsers /> },
+        { label: t("nav_chat_config"),   href: "/admin/chat/config",  icon: <IcoSettings /> },
+        { label: t("nav_support_inbox"), href: "/admin/chat/support", icon: <IcoUsers /> },
+      ]},
+    { type: "group", label: t("nav_system_admin"),  key: "sysadmin",                 icon: <IcoAdmin />,
+      items: [
+        { label: t("nav_users"), href: "/admin/users", icon: <IcoUsers /> },
+        { label: t("nav_roles"), href: "/admin/roles", icon: <IcoRoles /> },
+      ]},
+  ];
+}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const user = useAppSelector((s) => s.auth.user);
   const isHydrated = useAppSelector((s) => s.auth.isHydrated);
+  const t = useTranslations("admin_portal");
+  const NAV_ENTRIES = getNavEntries(t);
 
   useEffect(() => {
     if (!isHydrated) return;

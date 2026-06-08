@@ -3002,6 +3002,26 @@
     "confirm_delete": "Xóa bình luận này?",
     "report_success": "Đã báo cáo bình luận"
   },
+  "qa_section": {
+    "title": "Hỏi & Đáp",
+    "placeholder": "Đặt câu hỏi hoặc chia sẻ ghi chú…",
+    "submit": "Gửi câu hỏi",
+    "submitting": "Đang gửi…",
+    "loading": "Đang tải…",
+    "empty": "Chưa có câu hỏi nào. Hãy đặt câu hỏi đầu tiên!",
+    "load_more": "Xem thêm",
+    "deleted": "[Bình luận đã bị xóa]",
+    "pinned_badge": "Đã ghim",
+    "upvote": "Hữu ích",
+    "reply": "Trả lời",
+    "pin": "Ghim",
+    "unpin": "Bỏ ghim",
+    "delete": "Xóa",
+    "reply_placeholder": "Viết câu trả lời…",
+    "reply_cancel": "Hủy",
+    "reply_submit": "Gửi",
+    "reply_submitting": "Đang gửi…"
+  },
   "books_tabs": {
     "shop": "Cửa hàng",
     "library": "Thư viện sách",

@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useSelector } from "react-redux";
+import { useTranslations } from "next-intl";
 import type { RootState } from "@/lib/store";
 import Link from "next/link";
 import {
@@ -18,7 +19,6 @@ import {
   type SegmentDetail,
   type SegmentAsset,
 } from "@/lib/features/cms/cmsApi";
-import { AssetMetadataEditor } from "@/components/cms/AssetMetadataEditor";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5009";
 
@@ -37,14 +37,14 @@ function parseTime(value: string): number {
 }
 
 const ASSET_TYPES = [
-  { value: "GrammarBlock", label: "📚 Grammar Block" },
-  { value: "VocabularyBlock", label: "🔤 Vocabulary Block" },
-  { value: "QuizBlock", label: "❓ Quiz Block" },
-  { value: "ExerciseBlock", label: "✏️ Exercise Block" },
-  { value: "PPTBlock", label: "📊 Slide / PPT" },
-  { value: "NoteBlock", label: "📝 Note Block" },
-  { value: "FileAttachment", label: "📎 File Attachment" },
-];
+  "GrammarBlock",
+  "VocabularyBlock",
+  "QuizBlock",
+  "ExerciseBlock",
+  "PPTBlock",
+  "NoteBlock",
+  "FileAttachment",
+] as const;
 
 const ASSET_ICONS: Record<string, string> = {
   GrammarBlock: "📚",
@@ -88,6 +88,7 @@ const defaultAssetForm = (): AssetFormState => ({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function SessionEditorPage() {
+  const t = useTranslations("admin_session_detail");
   const { id } = useParams<{ id: string }>();
   const token = useSelector((s: RootState) => s.auth.accessToken);
   const tenantSlug = useSelector((s: RootState) => s.auth.tenantSlug);
@@ -127,9 +128,9 @@ export default function SessionEditorPage() {
     try {
       await updateSession({ id, ...sessionForm }).unwrap();
       setEditSession(false);
-      showMsg("success", "Đã cập nhật session");
+      showMsg("success", t("toast_session_ok"));
     } catch {
-      showMsg("error", "Cập nhật thất bại");
+      showMsg("error", t("toast_session_fail"));
     }
   };
 
@@ -156,9 +157,9 @@ export default function SessionEditorPage() {
         if (tenantSlug) xhr.setRequestHeader("X-Tenant-Slug", tenantSlug);
         xhr.send(fd);
       });
-      showMsg("success", "Video đã được tải lên");
+      showMsg("success", t("toast_video_ok"));
     } catch {
-      showMsg("error", "Upload video thất bại");
+      showMsg("error", t("toast_video_fail"));
     } finally {
       setVideoUploading(false);
     }
@@ -206,29 +207,29 @@ export default function SessionEditorPage() {
           title: segForm.title, description: segForm.description || undefined,
           startTime, endTime,
         }).unwrap();
-        showMsg("success", "Đã cập nhật segment");
+        showMsg("success", t("toast_seg_update_ok"));
       } else {
         await createSegment({
           sessionId: id,
           title: segForm.title, description: segForm.description || undefined,
           startTime, endTime,
         }).unwrap();
-        showMsg("success", "Đã thêm segment");
+        showMsg("success", t("toast_seg_add_ok"));
       }
       setShowAddSegment(false);
     } catch (err: unknown) {
-      const msg = (err as { data?: { detail?: string } })?.data?.detail ?? "Thao tác thất bại";
+      const msg = (err as { data?: { detail?: string } })?.data?.detail ?? t("toast_seg_op_fail");
       showMsg("error", msg);
     }
   };
 
   const handleDeleteSegment = async (segId: string, title: string) => {
-    if (!confirm(`Xóa segment "${title}"?`)) return;
+    if (!confirm(t("confirm_del_seg", { title }))) return;
     try {
       await deleteSegment({ id: segId, sessionId: id }).unwrap();
-      showMsg("success", "Đã xóa segment");
+      showMsg("success", t("toast_seg_del_ok"));
     } catch {
-      showMsg("error", "Xóa thất bại");
+      showMsg("error", t("toast_seg_del_fail"));
     }
   };
 
@@ -295,7 +296,7 @@ export default function SessionEditorPage() {
           metadata: assetForm.metadata, isPublic: assetForm.isPublic,
         }).unwrap();
         if (assetFile) await uploadAssetFile(assetPanel.asset.id, assetFile);
-        showMsg("success", "Đã cập nhật asset");
+        showMsg("success", t("toast_asset_update_ok"));
       } else {
         const newId = await createAsset({
           segmentId: assetPanel.segmentId, sessionId: id,
@@ -305,30 +306,30 @@ export default function SessionEditorPage() {
           metadata: assetForm.metadata, isPublic: assetForm.isPublic,
         }).unwrap();
         if (assetFile) await uploadAssetFile(newId as unknown as string, assetFile);
-        showMsg("success", "Đã thêm asset");
+        showMsg("success", t("toast_asset_add_ok"));
       }
       setAssetPanel(null);
       setAssetFile(null);
     } catch (err: unknown) {
-      const errMsg = (err as { data?: { detail?: string } })?.data?.detail ?? "Thao tác thất bại";
+      const errMsg = (err as { data?: { detail?: string } })?.data?.detail ?? t("toast_asset_op_fail");
       showMsg("error", errMsg);
     }
   };
 
   const handleDeleteAsset = async (assetId: string, title: string) => {
-    if (!confirm(`Xóa "${title}"?`)) return;
+    if (!confirm(t("confirm_del_asset", { title }))) return;
     try {
       await deleteAsset({ id: assetId, sessionId: id }).unwrap();
-      showMsg("success", "Đã xóa asset");
+      showMsg("success", t("toast_asset_del_ok"));
     } catch {
-      showMsg("error", "Xóa thất bại");
+      showMsg("error", t("toast_asset_del_fail"));
     }
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  if (isLoading) return <div className="p-6 text-gray-500">Đang tải...</div>;
-  if (!session) return <div className="p-6 text-red-500">Không tìm thấy session</div>;
+  if (isLoading) return <div className="p-6 text-gray-500">{t("loading")}</div>;
+  if (!session) return <div className="p-6 text-red-500">{t("not_found")}</div>;
 
   const sortedSegments = [...session.segments].sort((a, b) => a.startTime - b.startTime);
   const totalDuration = session.durationSeconds;
@@ -339,9 +340,9 @@ export default function SessionEditorPage() {
     <div className="p-6">
       {/* Breadcrumb */}
       <nav className="mb-4 text-sm text-gray-500 flex items-center gap-1.5">
-        <Link href="/teacher/courses" className="hover:text-blue-600">Khóa học</Link>
+        <Link href="/teacher/courses" className="hover:text-blue-600">{t("crumb_courses")}</Link>
         <span>/</span>
-        <Link href={`/teacher/modules/${session.moduleId}`} className="hover:text-blue-600">Module</Link>
+        <Link href={`/teacher/modules/${session.moduleId}`} className="hover:text-blue-600">{t("crumb_module")}</Link>
         <span>/</span>
         <span className="text-gray-800 font-medium">{session.title}</span>
       </nav>
@@ -357,20 +358,20 @@ export default function SessionEditorPage() {
         {editSession ? (
           <form onSubmit={handleUpdateSession} className="space-y-4">
             <div>
-              <label className={labelCls}>Tên session *</label>
+              <label className={labelCls}>{t("f_title")}</label>
               <input required value={sessionForm.title} onChange={(e) => setSessionForm({ ...sessionForm, title: e.target.value })} className={inputCls} />
             </div>
             <div>
-              <label className={labelCls}>Mô tả</label>
+              <label className={labelCls}>{t("f_desc")}</label>
               <textarea value={sessionForm.description} onChange={(e) => setSessionForm({ ...sessionForm, description: e.target.value })} rows={2} className={inputCls} />
             </div>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={sessionForm.isFreeTrial} onChange={(e) => setSessionForm({ ...sessionForm, isFreeTrial: e.target.checked })} className="rounded" />
-              <span className="font-medium text-gray-700">Học thử miễn phí</span>
+              <span className="font-medium text-gray-700">{t("free_trial_label")}</span>
             </label>
             <div className="flex gap-3">
-              <button type="submit" className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700">Lưu</button>
-              <button type="button" onClick={() => setEditSession(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">Hủy</button>
+              <button type="submit" className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700">{t("btn_save")}</button>
+              <button type="button" onClick={() => setEditSession(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">{t("btn_cancel")}</button>
             </div>
           </form>
         ) : (
@@ -385,13 +386,13 @@ export default function SessionEditorPage() {
                 ].join(" ")}>
                   {session.publishStatus}
                 </span>
-                {session.isFreeTrial && <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">Free trial</span>}
-                {totalDuration > 0 && <span className="text-xs text-gray-400">⏱ {Math.round(totalDuration / 60)} phút</span>}
-                <span className="text-xs text-gray-400">🎬 {sortedSegments.length} segment</span>
+                {session.isFreeTrial && <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">{t("free_badge")}</span>}
+                {totalDuration > 0 && <span className="text-xs text-gray-400">{t("mins", { n: Math.round(totalDuration / 60) })}</span>}
+                <span className="text-xs text-gray-400">{t("seg_count", { n: sortedSegments.length })}</span>
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={startEditSession} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50">Sửa</button>
+              <button onClick={startEditSession} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50">{t("btn_edit")}</button>
               <button
                 onClick={() => publishSession({ id, publish: session.publishStatus !== "Published" })}
                 className={[
@@ -401,7 +402,7 @@ export default function SessionEditorPage() {
                     : "bg-green-600 text-white hover:bg-green-700",
                 ].join(" ")}
               >
-                {session.publishStatus === "Published" ? "Hủy xuất bản" : "Xuất bản"}
+                {session.publishStatus === "Published" ? t("btn_unpublish") : t("btn_publish")}
               </button>
             </div>
           </div>
@@ -410,7 +411,7 @@ export default function SessionEditorPage() {
 
       {/* Video Section */}
       <div className="mb-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">🎬 Video bài giảng</h2>
+        <h2 className="mb-4 text-base font-semibold text-gray-900">{t("video_section")}</h2>
         {session.videoAsset ? (
           <div className="flex items-center gap-6">
             <div className="flex-1 space-y-1">
@@ -419,11 +420,11 @@ export default function SessionEditorPage() {
                   "rounded-full px-2.5 py-0.5 text-xs font-medium",
                   session.videoAsset.status === "Ready" ? "bg-green-100 text-green-700" : "bg-yellow-50 text-yellow-700",
                 ].join(" ")}>
-                  {session.videoAsset.status === "Ready" ? "✅ Sẵn sàng" : `⚙️ ${session.videoAsset.status}`}
+                  {session.videoAsset.status === "Ready" ? t("video_ready") : t("video_processing", { status: session.videoAsset.status })}
                 </span>
                 {session.videoAsset.durationSeconds > 0 && (
                   <span className="text-sm text-gray-500">
-                    {fmtTime(session.videoAsset.durationSeconds)} ({Math.round(session.videoAsset.durationSeconds / 60)} phút)
+                    {t("video_dur", { time: fmtTime(session.videoAsset.durationSeconds), mins: Math.round(session.videoAsset.durationSeconds / 60) })}
                   </span>
                 )}
               </div>
@@ -432,7 +433,7 @@ export default function SessionEditorPage() {
               )}
             </div>
             <button onClick={() => videoInputRef.current?.click()} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50">
-              Thay video
+              {t("btn_replace_video")}
             </button>
           </div>
         ) : (
@@ -442,7 +443,7 @@ export default function SessionEditorPage() {
           >
             {videoUploading ? (
               <div className="space-y-2">
-                <p className="text-sm text-gray-600">Đang tải lên... {videoProgress}%</p>
+                <p className="text-sm text-gray-600">{t("video_uploading", { p: videoProgress })}</p>
                 <div className="mx-auto h-2 w-64 rounded-full bg-gray-200">
                   <div className="h-2 rounded-full bg-purple-600 transition-all" style={{ width: `${videoProgress}%` }} />
                 </div>
@@ -450,8 +451,8 @@ export default function SessionEditorPage() {
             ) : (
               <div className="text-gray-400">
                 <div className="text-4xl mb-2">🎬</div>
-                <p className="text-sm font-medium">Nhấn để tải lên video bài giảng</p>
-                <p className="text-xs mt-1">MP4, MKV, MOV — tối đa 2GB</p>
+                <p className="text-sm font-medium">{t("video_pick")}</p>
+                <p className="text-xs mt-1">{t("video_hint")}</p>
               </div>
             )}
           </div>
@@ -471,12 +472,12 @@ export default function SessionEditorPage() {
       {/* Timeline + Segments */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-900">📋 Timeline — Segments</h2>
+          <h2 className="text-base font-semibold text-gray-900">{t("timeline_title")}</h2>
           <button
             onClick={openAddSegment}
             className="rounded-lg bg-purple-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-purple-700"
           >
-            + Thêm segment
+            {t("btn_add_segment")}
           </button>
         </div>
 
@@ -499,7 +500,7 @@ export default function SessionEditorPage() {
 
         {sortedSegments.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-300 py-10 text-center text-gray-400">
-            Chưa có segment. Nhấn &quot;+ Thêm segment&quot; để bắt đầu.
+            {t("empty_segments")}
           </div>
         ) : (
           <div className="space-y-4">
@@ -524,26 +525,26 @@ export default function SessionEditorPage() {
                       onClick={() => openAddAsset(seg.id, seg)}
                       className="rounded bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-200"
                     >
-                      + Asset
+                      {t("btn_add_asset")}
                     </button>
                     <button
                       onClick={() => openEditSegment(seg)}
                       className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 hover:bg-gray-200"
                     >
-                      Sửa
+                      {t("btn_edit_short")}
                     </button>
                     <button
                       onClick={() => handleDeleteSegment(seg.id, seg.title)}
                       className="rounded bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100"
                     >
-                      Xóa
+                      {t("btn_delete_short")}
                     </button>
                   </div>
                 </div>
 
                 {/* Assets list */}
                 {seg.assets.length === 0 ? (
-                  <div className="px-4 py-3 text-xs text-gray-400 italic">Chưa có asset nào.</div>
+                  <div className="px-4 py-3 text-xs text-gray-400 italic">{t("empty_assets")}</div>
                 ) : (
                   <div className="divide-y divide-gray-100">
                     {[...seg.assets].sort((a, b) => a.orderIndex - b.orderIndex).map((asset) => (
@@ -561,13 +562,13 @@ export default function SessionEditorPage() {
                             onClick={() => openEditAsset(seg.id, asset)}
                             className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 hover:bg-gray-200"
                           >
-                            Sửa
+                            {t("btn_edit_short")}
                           </button>
                           <button
                             onClick={() => handleDeleteAsset(asset.id, asset.title)}
                             className="rounded bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100"
                           >
-                            Xóa
+                            {t("btn_delete_short")}
                           </button>
                         </div>
                       </div>
@@ -585,21 +586,21 @@ export default function SessionEditorPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
             <h2 className="mb-4 text-lg font-semibold">
-              {editSegmentId ? "Sửa segment" : "Thêm segment"}
+              {editSegmentId ? t("modal_edit_seg") : t("modal_add_seg")}
             </h2>
             <form onSubmit={handleSaveSegment} className="space-y-4">
               <div>
-                <label className={labelCls}>Tên segment *</label>
+                <label className={labelCls}>{t("f_seg_title")}</label>
                 <input
                   required
                   value={segForm.title}
                   onChange={(e) => setSegForm({ ...segForm, title: e.target.value })}
                   className={inputCls}
-                  placeholder="VD: Grammar: Present Simple"
+                  placeholder={t("f_seg_title_ph")}
                 />
               </div>
               <div>
-                <label className={labelCls}>Mô tả</label>
+                <label className={labelCls}>{t("f_desc")}</label>
                 <textarea
                   value={segForm.description}
                   onChange={(e) => setSegForm({ ...segForm, description: e.target.value })}
@@ -609,7 +610,7 @@ export default function SessionEditorPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={labelCls}>Bắt đầu (m:ss) *</label>
+                  <label className={labelCls}>{t("f_start")}</label>
                   <input
                     required
                     value={segForm.startTimeStr}
@@ -619,7 +620,7 @@ export default function SessionEditorPage() {
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>Kết thúc (m:ss) *</label>
+                  <label className={labelCls}>{t("f_end")}</label>
                   <input
                     required
                     value={segForm.endTimeStr}
@@ -630,15 +631,15 @@ export default function SessionEditorPage() {
                 </div>
               </div>
               <p className="text-xs text-gray-400">
-                Thời lượng: {(() => {
+                {t("dur_label", { value: (() => {
                   const dur = parseTime(segForm.endTimeStr) - parseTime(segForm.startTimeStr);
                   return dur > 0 ? `${Math.floor(dur / 60)}m${dur % 60}s` : "—";
-                })()}
+                })() })}
               </p>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowAddSegment(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">Hủy</button>
+                <button type="button" onClick={() => setShowAddSegment(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">{t("btn_cancel")}</button>
                 <button type="submit" disabled={creatingSegment} className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-60">
-                  {editSegmentId ? "Cập nhật" : (creatingSegment ? "Đang thêm..." : "Thêm")}
+                  {editSegmentId ? t("btn_update") : (creatingSegment ? t("btn_adding") : t("btn_add"))}
                 </button>
               </div>
             </form>
@@ -650,44 +651,32 @@ export default function SessionEditorPage() {
       {assetPanel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">
-                {assetPanel.asset ? "Sửa asset" : "Thêm asset"}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setAssetPanel(null)}
-                className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition"
-                aria-label="Đóng"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-            </div>
+            <h2 className="mb-4 text-lg font-semibold">
+              {assetPanel.asset ? t("modal_edit_asset") : t("modal_add_asset")}
+            </h2>
             <form onSubmit={handleSaveAsset} className="space-y-4">
               {!assetPanel.asset && (
                 <div>
-                  <label className={labelCls}>Loại asset *</label>
+                  <label className={labelCls}>{t("f_asset_type")}</label>
                   <select
                     value={assetForm.type}
                     onChange={(e) => setAssetForm({ ...assetForm, type: e.target.value })}
                     className={inputCls}
                   >
-                    {ASSET_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
+                    {ASSET_TYPES.map((v) => (
+                      <option key={v} value={v}>{t(`atype_${v}` as 'atype_GrammarBlock')}</option>
                     ))}
                   </select>
                 </div>
               )}
               {assetPanel.asset && (
                 <div>
-                  <label className={labelCls}>Loại</label>
+                  <label className={labelCls}>{t("f_asset_type_view")}</label>
                   <input disabled value={`${ASSET_ICONS[assetForm.type] ?? "📌"} ${assetForm.type}`} className={`${inputCls} bg-gray-50 text-gray-500`} />
                 </div>
               )}
               <div>
-                <label className={labelCls}>Tiêu đề *</label>
+                <label className={labelCls}>{t("f_asset_title")}</label>
                 <input
                   required
                   value={assetForm.title}
@@ -696,7 +685,7 @@ export default function SessionEditorPage() {
                 />
               </div>
               <div>
-                <label className={labelCls}>Mô tả</label>
+                <label className={labelCls}>{t("f_desc")}</label>
                 <textarea
                   value={assetForm.description}
                   onChange={(e) => setAssetForm({ ...assetForm, description: e.target.value })}
@@ -706,7 +695,7 @@ export default function SessionEditorPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={labelCls}>Timestamp (m:ss) *</label>
+                  <label className={labelCls}>{t("f_timestamp")}</label>
                   <input
                     required
                     value={assetForm.startTimeStr}
@@ -714,33 +703,33 @@ export default function SessionEditorPage() {
                     className={inputCls}
                     placeholder="0:00"
                   />
-                  <p className="mt-1 text-xs text-gray-400">Video sẽ seek đến mốc này khi click</p>
+                  <p className="mt-1 text-xs text-gray-400">{t("hint_timestamp")}</p>
                 </div>
                 <div>
-                  <label className={labelCls}>Kết thúc highlight (m:ss)</label>
+                  <label className={labelCls}>{t("f_end_highlight")}</label>
                   <input
                     value={assetForm.endTimeStr}
                     onChange={(e) => setAssetForm({ ...assetForm, endTimeStr: e.target.value })}
                     className={inputCls}
-                    placeholder="Không bắt buộc"
+                    placeholder={t("f_end_highlight_ph")}
                   />
-                  <p className="mt-1 text-xs text-gray-400">Vùng highlight trên timeline (tùy chọn)</p>
+                  <p className="mt-1 text-xs text-gray-400">{t("hint_end_highlight")}</p>
                 </div>
               </div>
               <div>
                 {(assetForm.type === "PPTBlock" || assetForm.type === "FileAttachment") && (
                   <div>
-                    <label className={labelCls}>File đính kèm</label>
+                    <label className={labelCls}>{t("f_attached_file")}</label>
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
                         onClick={() => assetFileInputRef.current?.click()}
                         className="rounded-lg border border-dashed border-gray-400 px-4 py-2 text-sm text-gray-600 hover:border-purple-500 hover:text-purple-600 transition"
                       >
-                        {assetFile ? `📎 ${assetFile.name}` : "Chọn file"}
+                        {assetFile ? `📎 ${assetFile.name}` : t("btn_pick_file")}
                       </button>
                       {assetFile && (
-                        <button type="button" onClick={() => setAssetFile(null)} className="text-xs text-red-500 hover:text-red-700">✕ Bỏ</button>
+                        <button type="button" onClick={() => setAssetFile(null)} className="text-xs text-red-500 hover:text-red-700">{t("btn_clear_file")}</button>
                       )}
                       <input
                         ref={assetFileInputRef}
@@ -750,17 +739,18 @@ export default function SessionEditorPage() {
                         onChange={(e) => setAssetFile(e.target.files?.[0] ?? null)}
                       />
                     </div>
-                    <p className="mt-1 text-xs text-gray-400">PDF, PPT, PPTX, DOCX... File sẽ được upload khi lưu.</p>
+                    <p className="mt-1 text-xs text-gray-400">{t("hint_file")}</p>
                   </div>
                 )}
-                <div className="rounded-lg border border-purple-100 bg-purple-50/40 p-3">
-                  <label className="mb-2 block text-sm font-medium text-gray-700">Nội dung chi tiết</label>
-                  <AssetMetadataEditor
-                    assetType={assetForm.type}
-                    value={assetForm.metadata}
-                    onChange={(json) => setAssetForm({ ...assetForm, metadata: json })}
-                  />
-                </div>
+                <label className={labelCls}>{t("f_metadata")}</label>
+                <textarea
+                  value={assetForm.metadata}
+                  onChange={(e) => setAssetForm({ ...assetForm, metadata: e.target.value })}
+                  rows={3}
+                  className={`${inputCls} font-mono text-xs`}
+                  placeholder="{}"
+                />
+                <p className="mt-1 text-xs text-gray-400">{t("hint_metadata")}</p>
               </div>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -769,12 +759,12 @@ export default function SessionEditorPage() {
                   onChange={(e) => setAssetForm({ ...assetForm, isPublic: e.target.checked })}
                   className="rounded"
                 />
-                <span className="font-medium text-gray-700">Hiện với học viên</span>
+                <span className="font-medium text-gray-700">{t("f_is_public")}</span>
               </label>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setAssetPanel(null)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">Hủy</button>
+                <button type="button" onClick={() => setAssetPanel(null)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">{t("btn_cancel")}</button>
                 <button type="submit" disabled={creatingAsset || assetUploading} className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-60">
-                  {assetUploading ? "Đang upload..." : assetPanel.asset ? "Cập nhật" : (creatingAsset ? "Đang thêm..." : "Thêm")}
+                  {assetUploading ? t("btn_uploading") : assetPanel.asset ? t("btn_update") : (creatingAsset ? t("btn_adding") : t("btn_add"))}
                 </button>
               </div>
             </form>

@@ -3002,6 +3002,26 @@
     "confirm_delete": "이 댓글을 삭제하시겠습니까?",
     "report_success": "댓글이 신고되었습니다"
   },
+  "qa_section": {
+    "title": "질문 & 답변",
+    "placeholder": "질문하거나 메모를 공유하세요…",
+    "submit": "질문 제출",
+    "submitting": "제출 중…",
+    "loading": "로딩 중…",
+    "empty": "아직 질문이 없습니다. 첫 번째로 질문해보세요!",
+    "load_more": "더 보기",
+    "deleted": "[삭제된 댓글]",
+    "pinned_badge": "고정됨",
+    "upvote": "도움됨",
+    "reply": "답글",
+    "pin": "고정",
+    "unpin": "고정 해제",
+    "delete": "삭제",
+    "reply_placeholder": "답글 작성…",
+    "reply_cancel": "취소",
+    "reply_submit": "전송",
+    "reply_submitting": "전송 중…"
+  },
   "books_tabs": {
     "shop": "스토어",
     "library": "도서관",

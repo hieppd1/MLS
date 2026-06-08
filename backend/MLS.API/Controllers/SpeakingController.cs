@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
+using MLS.API.Resources;
 using MLS.Application.Quiz.Commands;
 using MLS.Application.Quiz.Queries;
 using MLS.Domain.Interfaces;
@@ -10,7 +12,7 @@ namespace MLS.API.Controllers;
 [ApiController]
 [Route("api/v1/speaking")]
 [Authorize]
-public class SpeakingController(IMediator mediator, ITenantContext tenant) : ControllerBase
+public class SpeakingController(IMediator mediator, ITenantContext tenant, IStringLocalizer<SharedResource> loc) : ControllerBase
 {
     private Guid CurrentUserId =>
         Guid.Parse(User.FindFirst("sub")?.Value
@@ -30,12 +32,12 @@ public class SpeakingController(IMediator mediator, ITenantContext tenant) : Con
         CancellationToken ct)
     {
         if (file.Length == 0)
-            return BadRequest(new { message = "Audio file is empty." });
+            return BadRequest(new { message = loc["AudioFileEmpty"].Value });
 
         var allowedPrefixes = new[] { "audio/webm", "audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4", "audio/x-m4a" };
         var contentType = file.ContentType.ToLowerInvariant();
         if (!allowedPrefixes.Any(p => contentType.StartsWith(p)))
-            return BadRequest(new { message = "Unsupported audio format. Use WebM, MP3, WAV, OGG, or M4A." });
+            return BadRequest(new { message = loc["AudioFormatUnsupported"].Value });
 
         await using var stream = file.OpenReadStream();
         var result = await mediator.Send(new UploadSpeakingCommand(
@@ -71,7 +73,7 @@ public class SpeakingController(IMediator mediator, ITenantContext tenant) : Con
         var result = await mediator.Send(new GetSpeakingResultQuery(id, CurrentUserId), ct);
         if (result == null) return NotFound();
         if (result.Status == "Pending" || result.Status == "Processing")
-            return Ok(new { submissionId = id, status = result.Status, message = "Grading in progress." });
+            return Ok(new { submissionId = id, status = result.Status, message = loc["GradingInProgress"].Value });
         return Ok(result);
     }
 }

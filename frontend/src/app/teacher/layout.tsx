@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAppSelector } from "@/lib/hooks";
+import { useTranslations } from "next-intl";
 
 /* ── SVG Icons ────────────────────────────────────────────────────────────── */
 const IcoQuiz    = () => <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
@@ -30,33 +31,37 @@ type NavEntry =
   | { type: "link";  label: string; href: string; icon: React.ReactNode }
   | { type: "group"; label: string; key: string; icon: React.ReactNode; items: NavItem[] };
 
-const NAV_ENTRIES: NavEntry[] = [
-  { type: "group", label: "Quiz & Câu hỏi", key: "quiz", icon: <IcoQuiz />, items: [
-    { label: "Quản lý Quiz",       href: "/teacher/quizzes",      icon: <IcoQuiz /> },
-    { label: "Ngân hàng câu hỏi",  href: "/teacher/questions",    icon: <IcoBank /> },
-    { label: "Kiểm tra xếp lớp",   href: "/teacher/placement",    icon: <IcoTarget /> },
-    { label: "Realtime Quiz",       href: "/teacher/realtime/new", icon: <IcoZap /> },
-  ]},
-  { type: "link", label: "Khóa học của tôi", href: "/teacher/courses", icon: <IcoCourse /> },
-  { type: "link", label: "Quản lý nhóm chat", href: "/teacher/chat/groups", icon: <IcoUsers /> },
-  { type: "group", label: "OPIC", key: "opic", icon: <IcoChart />, items: [
-    { label: "Phân tích",   href: "/teacher/opic",          icon: <IcoChart /> },
-    { label: "Học viên",    href: "/teacher/opic/students", icon: <IcoUsers /> },
-    { label: "Script mẫu",  href: "/teacher/opic/scripts",  icon: <IcoScript /> },
-  ]},
-  { type: "group", label: "VSTEP", key: "vstep", icon: <IcoMedal />, items: [
-    { label: "Tổng quan VSTEP",    href: "/teacher/vstep",          icon: <IcoMedal /> },
-    { label: "Phiên thi",          href: "/teacher/vstep/sessions", icon: <IcoClip /> },
-    { label: "Đoạn văn / Audio",   href: "/teacher/vstep/passages", icon: <IcoBook /> },
-  ]},
-  { type: "link", label: "Cấu hình danh mục", href: "/teacher/config", icon: <IcoGear /> },
-];
+function getNavEntries(t: (key: string) => string): NavEntry[] {
+  return [
+    { type: "group", label: t("nav_quiz_group"), key: "quiz", icon: <IcoQuiz />, items: [
+      { label: t("nav_quiz_manage"),   href: "/teacher/quizzes",      icon: <IcoQuiz /> },
+      { label: t("nav_question_bank"), href: "/teacher/questions",    icon: <IcoBank /> },
+      { label: t("nav_placement"),     href: "/teacher/placement",    icon: <IcoTarget /> },
+      { label: t("nav_realtime"),      href: "/teacher/realtime/new", icon: <IcoZap /> },
+    ]},
+    { type: "link", label: t("nav_my_courses"),  href: "/teacher/courses",     icon: <IcoCourse /> },
+    { type: "link", label: t("nav_chat_groups"), href: "/teacher/chat/groups", icon: <IcoUsers /> },
+    { type: "group", label: "OPIC", key: "opic", icon: <IcoChart />, items: [
+      { label: t("nav_opic_analytics"), href: "/teacher/opic",          icon: <IcoChart /> },
+      { label: t("nav_opic_students"),  href: "/teacher/opic/students", icon: <IcoUsers /> },
+      { label: t("nav_opic_scripts"),   href: "/teacher/opic/scripts",  icon: <IcoScript /> },
+    ]},
+    { type: "group", label: "VSTEP", key: "vstep", icon: <IcoMedal />, items: [
+      { label: t("nav_vstep_overview"),  href: "/teacher/vstep",          icon: <IcoMedal /> },
+      { label: t("nav_vstep_sessions"),  href: "/teacher/vstep/sessions", icon: <IcoClip /> },
+      { label: t("nav_vstep_passages"),  href: "/teacher/vstep/passages", icon: <IcoBook /> },
+    ]},
+    { type: "link", label: t("nav_config"), href: "/teacher/config", icon: <IcoGear /> },
+  ];
+}
 
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   const router     = useRouter();
   const pathname   = usePathname();
   const isHydrated = useAppSelector((s) => s.auth.isHydrated);
   const user       = useAppSelector((s) => s.auth.user);
+  const t          = useTranslations("teacher_portal");
+  const NAV_ENTRIES = getNavEntries(t);
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -107,12 +112,12 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         <div className="flex h-14 items-center border-b border-gray-100 px-3 shrink-0">
           {sidebarOpen && (
             <Link href="/teacher/quizzes" className="flex-1 text-sm font-bold text-blue-700 truncate">
-              Teacher Portal
+              {t("title")}
             </Link>
           )}
           <button
             onClick={() => setSidebarOpen((v) => !v)}
-            title={sidebarOpen ? "Thu gọn menu" : "Mở rộng menu"}
+            title={sidebarOpen ? t("collapse_menu") : t("expand_menu")}
             className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors shrink-0"
           >
             {sidebarOpen ? (

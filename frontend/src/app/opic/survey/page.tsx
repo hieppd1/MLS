@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   useGetTopicsQuery,
   useGetMySurveyQuery,
@@ -32,7 +33,7 @@ const TOPIC_LABELS: Record<string, string> = {
 
 export default function OPICSurveyPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-500">Đang tải...</p></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-500">...</p></div>}>
       <OPICSurveyContent />
     </Suspense>
   );
@@ -42,6 +43,9 @@ function OPICSurveyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const presetQuizId = searchParams.get("quizId") ?? "";
+  const t = useTranslations("opic");
+  const tos = useTranslations("opic_survey");
+  const ttp = useTranslations("opic_topics");
 
   const { data: topics } = useGetTopicsQuery();
   const { data: existingSurvey } = useGetMySurveyQuery();
@@ -74,11 +78,11 @@ function OPICSurveyContent() {
 
   const handleStart = async () => {
     if (selected.size < 3) {
-      setError("Vui lòng chọn ít nhất 3 chủ đề.");
+      setError(tos("error_min_topics"));
       return;
     }
     if (!selectedQuizId) {
-      setError("Vui lòng chọn đề thi trước khi bắt đầu.");
+      setError(tos("error_choose_quiz"));
       return;
     }
     setError("");
@@ -99,7 +103,7 @@ function OPICSurveyContent() {
 
       router.push(`/opic/${session.id}/play`);
     } catch {
-      setError("Không thể bắt đầu bài thi. Vui lòng thử lại.");
+      setError(tos("error_create"));
     }
   };
 
@@ -111,47 +115,47 @@ function OPICSurveyContent() {
       <div className="mx-auto max-w-2xl px-4 py-10">
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900">OPIC Speaking Test</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{tos("page_title")}</h1>
           <p className="mt-2 text-gray-500">
-            Bài thi đánh giá khả năng nói tiếng Anh theo chuẩn OPIC
+            {tos("subtitle")}
           </p>
         </div>
 
         {/* Topics */}
         <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-1 text-lg font-semibold text-gray-800">
-            Chọn chủ đề yêu thích <span className="text-red-500">*</span>
+            {tos("topics_header")} <span className="text-red-500">*</span>
           </h2>
-          <p className="mb-4 text-sm text-gray-500">Chọn ít nhất 3 chủ đề (tối đa 8)</p>
+          <p className="mb-4 text-sm text-gray-500">{tos("topics_hint")}</p>
           <div className="flex flex-wrap gap-2">
-            {allTopics.map((t) => (
+            {allTopics.map((topic) => (
               <button
-                key={t}
-                onClick={() => toggle(t)}
-                disabled={!selected.has(t) && selected.size >= 8}
+                key={topic}
+                onClick={() => toggle(topic)}
+                disabled={!selected.has(topic) && selected.size >= 8}
                 className={`rounded-full border px-3 py-1.5 text-sm font-medium transition
-                  ${selected.has(t)
+                  ${selected.has(topic)
                     ? "border-blue-500 bg-blue-500 text-white"
                     : "border-gray-200 bg-white text-gray-700 hover:border-blue-300 disabled:opacity-40"
                   }`}
               >
-                {TOPIC_LABELS[t] ?? t}
+                {ttp.has(topic) ? ttp(topic) : (TOPIC_LABELS[topic] ?? topic)}
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-gray-400">Đã chọn: {selected.size}/8</p>
+          <p className="mt-2 text-xs text-gray-400">{tos("topics_selected", { selected: selected.size, max: 8 })}</p>
         </div>
 
         {/* Quiz Selector */}
         <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-1 text-lg font-semibold text-gray-800">
-            Chọn đề thi <span className="text-red-500">*</span>
+            {tos("quiz_header")} <span className="text-red-500">*</span>
           </h2>
-          <p className="mb-4 text-sm text-gray-500">Chọn đề thi OPIC bạn muốn làm</p>
+          <p className="mb-4 text-sm text-gray-500">{tos("quiz_hint")}</p>
           {quizzesLoading ? (
-            <p className="text-sm text-gray-400">Đang tải danh sách đề thi...</p>
+            <p className="text-sm text-gray-400">{tos("quizzes_loading")}</p>
           ) : publishedQuizzes.length === 0 ? (
-            <p className="text-sm text-amber-600">Chưa có đề thi nào được công bố. Vui lòng liên hệ giáo viên.</p>
+            <p className="text-sm text-amber-600">{tos("quizzes_empty")}</p>
           ) : (
             <div className="flex flex-col gap-2">
               {publishedQuizzes.map((quiz) => (
@@ -165,14 +169,14 @@ function OPICSurveyContent() {
                     }`}
                 >
                   <p className="font-semibold text-gray-800">{quiz.title}</p>
-                  <p className="text-xs text-gray-500">{quiz.questionCount} câu hỏi</p>
+                  <p className="text-xs text-gray-500">{tos("questions_count", { count: quiz.questionCount })}</p>
                 </button>
               ))}
             </div>
           )}
         </div>
         <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-gray-800">Mức độ hiện tại của bạn</h2>
+          <h2 className="mb-4 text-lg font-semibold text-gray-800">{t("current_level")}</h2>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {DIFFICULTIES.map((d) => (
               <button
@@ -184,8 +188,8 @@ function OPICSurveyContent() {
                     : "border-gray-200 hover:border-blue-300"
                   }`}
               >
-                <p className="font-semibold text-gray-800">{d.label}</p>
-                <p className="text-xs text-gray-500">{d.desc}</p>
+                <p className="font-semibold text-gray-800">{tos(`diff_${d.value}_label`)}</p>
+                <p className="text-xs text-gray-500">{tos(`diff_${d.value}_desc`)}</p>
               </button>
             ))}
           </div>
@@ -194,16 +198,16 @@ function OPICSurveyContent() {
         {/* Target level (optional) */}
         <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-1 text-lg font-semibold text-gray-800">
-            Mục tiêu level <span className="text-gray-400 font-normal text-sm">(tùy chọn)</span>
+            {t("target_level")} <span className="text-gray-400 font-normal text-sm">{t("target_level_optional")}</span>
           </h2>
-          <p className="mb-3 text-sm text-gray-500">Bạn muốn đạt level nào trong kỳ thi này?</p>
+          <p className="mb-3 text-sm text-gray-500">{tos("target_question")}</p>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setTargetLevel("")}
               className={`rounded-full border px-3 py-1.5 text-sm transition
                 ${!targetLevel ? "border-gray-500 bg-gray-700 text-white" : "border-gray-200 text-gray-600"}`}
             >
-              Để hệ thống đánh giá
+              {t("auto_evaluate")}
             </button>
             {LEVELS.map((l) => (
               <button
@@ -227,12 +231,12 @@ function OPICSurveyContent() {
 
         {/* Notice */}
         <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
-          <p className="font-semibold mb-1">📋 Trước khi bắt đầu:</p>
+          <p className="font-semibold mb-1">{tos("notice_title")}</p>
           <ul className="list-disc list-inside space-y-1 text-amber-700">
-            <li>15 câu hỏi nói, mỗi câu nghe tối đa 2 lần</li>
-            <li>Trả lời bằng microphone, không gian yên tĩnh</li>
-            <li>Sau câu 7 có thể điều chỉnh độ khó</li>
-            <li>Kết quả được AI chấm và trả về trong vài phút</li>
+            <li>{tos("notice_1")}</li>
+            <li>{tos("notice_2")}</li>
+            <li>{tos("notice_3")}</li>
+            <li>{tos("notice_4")}</li>
           </ul>
         </div>
 
@@ -242,7 +246,7 @@ function OPICSurveyContent() {
           className="w-full rounded-xl bg-blue-600 py-3.5 text-base font-semibold text-white
             transition hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? "Đang khởi tạo..." : "Bắt đầu bài thi OPIC →"}
+          {loading ? t("initializing") : t("start_test")}
         </button>
       </div>
     </div>
